@@ -1,28 +1,25 @@
-const loginBtn = document.getElementById("loginBtn");
-const loginPage = document.getElementById("loginPage");
-const dashboard = document.getElementById("dashboard");
 const logoutBtn = document.getElementById("logoutBtn");
 const userNameDisplay = document.getElementById("userName");
+const username = localStorage.getItem("user");
 
-loginBtn.addEventListener("click", () => {
-  const username = document.getElementById("username").value || "investitorule";
+if (!username) {
+  window.location.href = "login/login.html";
+} else {
   userNameDisplay.textContent = username;
-  loginPage.classList.add("hidden");
-  dashboard.classList.remove("hidden");
-});
+}
 
 logoutBtn.addEventListener("click", () => {
-  dashboard.classList.add("hidden");
-  loginPage.classList.remove("hidden");
+  localStorage.removeItem("user");
+  window.location.href = "login/login.html";
 });
 
 const ctx = document.getElementById("investmentChart");
 new Chart(ctx, {
   type: "line",
   data: {
-    labels: ["Ian", "Feb", "Mar", "Apr", "Mai", "Iun", "Iul"],
+    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
     datasets: [{
-      label: "Evoluție",
+      label: "Investment Growth",
       data: [1000, 1500, 1800, 2300, 2100, 2600, 3000],
       borderColor: "#00ffc6",
       tension: 0.3,
@@ -32,10 +29,10 @@ new Chart(ctx, {
   options: {
     scales: {
       x: { ticks: { color: "#aaa" } },
-      y: { ticks: { color: "#aaa" } }
+      y: { ticks: { color: "#aaa" } },
     },
     plugins: {
-      legend: { labels: { color: "white" } }
-    }
-  }
+      legend: { labels: { color: "white" } },
+    },
+  },
 });
