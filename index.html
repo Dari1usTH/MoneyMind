@@ -8,10 +8,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 <body>
+    <nav class="navbar">
+        <div class="nav-logo">
+            <h2>Money<span>Mind</span></h2>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#" class="active">Dashboard</a></li>
+            <li><a href="#">Investments</a></li>
+            <li><a href="#">Reports</a></li>
+            <li><a href="#">Profile</a></li>
+            <li><a href="#">Settings</a></li>
+        </ul>
+        <button id="logoutBtn" class="logout-btn"></button>
+    </nav>
     <div class="dashboard" id="dashboard">
         <header>
             <h2>Welcome back, <span id="userName">Investor!</span></h2>
-            <button id="logoutBtn">Logout</button>
         </header>
 
         <section class="cards">
@@ -33,6 +45,24 @@
             <h3>Investment Growth</h3>
             <canvas id="investmentChart"></canvas>
         </section>
+
+        <section class="about">
+            <div class="about-card">
+                <h3>About MoneyMind</h3>
+                <p>MoneyMind is a personal finance dashboard designed to help you track your investments, profits, and losses in a clean and visual way.</p>
+                <p class="tip">Tip: Stay consistent — monitor your progress weekly to achieve your goals!</p>
+            </div>
+
+            <div class="about-card">
+                <h3>About Me</h3>
+                <p>Hi! I’m Darius — passionate about coding, design, and smart investments. I built MoneyMind to help people stay organized and confident with their finances.</p>
+                <p class="note">Passion • Precision • Growth</p>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>© 2025 <span>MoneyMind</span> • Made by Darius • Mail: <a href="mailto:moneymind@gmail.com">moneymind@gmail.com</a></p>
+        </footer>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
