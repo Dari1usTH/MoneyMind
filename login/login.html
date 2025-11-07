@@ -1,29 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MoneyMind - Login</title>
-    <link rel="stylesheet" href="login.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoneyMind - Login</title>
+  <link rel="stylesheet" href="login.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-box">
-            <h1>Money<span>Mind</span></h1>
-            <p>Welcome back! Log in to manage your investments.</p>
+  <div class="login-container">
+    <div class="login-box">
+      <h1>Money<span>Mind</span></h1>
 
-            <input type="text" id="username" placeholder="Username"/>
-            <input type="password" id="password" placeholder="Password"/>
+      <div class="input-group">
+        <i class="fas fa-envelope"></i>
+        <input type="text" id="username" placeholder="Email or Username" />
+      </div>
 
-            <button id="loginBtn">Sing In</button>
+      <div class="input-group">
+        <i class="fas fa-lock"></i>
+        <input type="password" id="password" placeholder="Password" />
+      </div>
 
-            <p class="singup-text">
-                Don't have an account? <a href="#">Sing up</a>
-            </p>
-        </div>
+      <div class="options">
+        <label><input type="checkbox" /> Remember me</label>
+        <a href="../forgotpass/fpass.html">Forgot Password?</a>
+      </div>
+
+      <button id="loginBtn">Login</button>
+
+      <p class="signup-text">
+        Don’t have an account? <a href="../register/register.html">Register</a>
+      </p>
     </div>
+  </div>
 
-    <script src="login.js"></script>
+  <script src="login.js"></script>
 </body>
 </html>
