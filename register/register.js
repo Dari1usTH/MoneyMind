@@ -51,6 +51,7 @@ registerBtn.addEventListener("click", () => {
   alert("Account successfully created!");
   window.location.href = "../index.html";
 });
+<<<<<<< HEAD
 
 
 
@@ -59,3 +60,5 @@ registerBtn.addEventListener("click", () => {
 // email verification
 // phone number verification
 // verify already existing account
+=======
+>>>>>>> 559b8d65ebc5ce40485f87ff066cc270d578237d
