@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoneyMind - Forgot Password</title>
+  <link rel="stylesheet" href="fgpass.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <button id="backBtn" class="back-btn">← Back</button>
+
+  <div class="login-container">
+    <div class="login-box">
+      <h1>Forgot <span>Password</span></h1>
+      <p>
+        Enter the email address associated with your account and we’ll send you a link
+        to reset your password.
+      </p>
+
+      <div id="message" class="message hidden"></div>
+
+      <div class="input-group">
+        <i class="fas fa-envelope"></i>
+        <input type="email" id="email" placeholder="Email address" />
+      </div>
+
+      <button id="sendLinkBtn">Send reset link</button>
+      <p class="signup-text">
+        Don’t have an account? <a href="../register/register.html">Register</a>
+      </p>
+    </div>
+    
+  </div>
+
+  <script src="fgpass.js"></script>
+</body>
+</html>

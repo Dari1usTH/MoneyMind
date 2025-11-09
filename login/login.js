@@ -12,3 +12,8 @@ loginBtn.addEventListener("click", () => {
     localStorage.setItem("user", username);
     window.location.href = "../index.html";
 });
+
+
+// to do
+// email code for verification
+// authenticator code (2fa only) or phone number

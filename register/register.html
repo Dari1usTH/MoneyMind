@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoneyMind - Register</title>
+  <link rel="stylesheet" href="register.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <a href="../index.html" class="back-link">← Back</a>
+  <div class="login-container">
+    <div class="login-box">
+      <h1>Money<span>Mind</span></h1>
+      <div id="errorBox" class="error-box" style="display: none;"></div>
+    
+      <div class="row">
+        <div class="input-group">
+          <i class="fas fa-user"></i>
+          <input type="text" id="nume" placeholder="First Name *" required />
+        </div>
+
+        <div class="input-group">
+          <i class="fas fa-user"></i>
+          <input type="text" id="prenume" placeholder="Last Name *" required />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="input-group">
+          <i class="fas fa-user-tag"></i>
+          <input type="text" id="username" placeholder="Username (optional)" />
+        </div>
+
+        <div class="input-group">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="email" placeholder="Email *" required />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="input-group">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="password" placeholder="Password *" required />
+        </div>
+
+        <div class="input-group">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="confirmPassword" placeholder="Confirm Password *" required />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="input-group">
+          <i class="fas fa-calendar"></i>
+          <input type="date" id="dob" placeholder="Date of Birth (optional)" />
+        </div>
+
+        <div class="input-group">
+          <i class="fas fa-phone"></i>
+          <input type="tel" id="phone" placeholder="Phone Number (optional)" />
+        </div>
+      </div>
+
+      <button id="registerBtn">Register</button>
+
+      <p class="signup-text">
+        Already have an account? <a href="../login/login.html">Login</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="register.js"></script>
+</body>
+</html>

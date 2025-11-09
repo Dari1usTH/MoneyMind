@@ -201,8 +201,10 @@ h1 span{ color:#00ffc6; }
   box-shadow: 0 4px 40px rgba(0,255,198,0.15);
 
   color: #00ffc6;
-  text-decoration: none;
   font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
   transition: .25s ease;
 }
 

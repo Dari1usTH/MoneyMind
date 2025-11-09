@@ -1,0 +1,121 @@
+.sub-navbar {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  padding: 12px;
+  border-radius: 0 0 15px 15px;
+  box-shadow: 0 4px 20px rgba(0,255,198,0.15);
+}
+
+.sub-navbar a {
+  color: #ddd;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 15px;
+  border-radius: 10px;
+  transition: 0.3s;
+}
+
+.sub-navbar a:hover,
+.sub-navbar a.active {
+  background: rgba(0,255,198,0.1);
+  color: #00ffc6;
+  box-shadow: 0 0 10px rgba(0,255,198,0.3);
+}
+
+.week-budget {
+  width: 80%;
+  margin: 30px auto;
+  background: rgba(255,255,255,0.05);
+  padding: 25px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 0 25px rgba(0,255,198,0.15);
+}
+
+.week-budget input {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: white;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 5px;
+  text-align: center;
+}
+
+#remaining {
+  margin-top: 10px;
+  font-weight: 600;
+  color: #00ffc6;
+}
+
+.calendar {
+  width: 90%;
+  margin: 40px auto;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+
+.day {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 15px;
+  text-align: center;
+  transition: 0.3s;
+}
+
+.day:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(0,255,198,0.25);
+}
+
+.day.negative {
+  background: rgba(255, 87, 87, 0.25);
+}
+
+.day.positive {
+  background: rgba(0, 255, 198, 0.15);
+}
+
+.investments {
+  width: 85%;
+  margin: 40px auto;
+  background: rgba(255,255,255,0.05);
+  padding: 25px;
+  border-radius: 20px;
+}
+
+.investments h3 {
+  color: #00ffc6;
+  margin-bottom: 15px;
+}
+
+.investments input,
+.investments textarea {
+  width: 100%;
+  margin: 10px 0;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.investments button {
+  background: linear-gradient(90deg, #00ffc6, #00b3ff);
+  border: none;
+  color: #000;
+  padding: 10px 25px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.investments button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px #00ffc6;
+}
