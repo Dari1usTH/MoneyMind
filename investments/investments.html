@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="./investments.css" />
 </head>
 <body>
-  <!-- NAV -->
   <nav class="navbar">
     <div class="nav-logo">
       <h2>MoneyMind <span>Investments</span></h2>
@@ -16,16 +15,15 @@
     <ul class="nav-links">
       <li><a href="../index.html">Dashboard</a></li>
       <li><a class="active" href="./investments.html">Investments</a></li>
-      <li><a href="../login">Login</a></li>
-      <li><a href="../register">Register</a></li>
     </ul>
-    <button class="logout-btn">Logout</button>
+    <button id="logoutBtn" class="logout-btn"></button>
   </nav>
 
   <main class="dashboard">
-    <!-- Top controls -->
     <header class="inv-header">
       <div class="period-switch">
+        <button data-period="0.1">1M</button>
+        <button data-period="0.6">6M</button>
         <button data-period="1">1Y</button>
         <button data-period="3">3Y</button>
         <button data-period="5">5Y</button>
@@ -35,7 +33,7 @@
 
       <div class="toolbar">
         <label class="calendar">
-          <span>Filtru lună:</span>
+          <span>Month filter:</span>
           <input id="monthFilter" type="month"/>
         </label>
 
@@ -44,42 +42,39 @@
       </div>
     </header>
 
-    <!-- Status cards -->
     <section class="cards">
       <article class="card">
-        <h4>Balanță</h4>
+        <h4>Balance</h4>
         <div class="value" id="balanceValue">0</div>
         <small class="muted">Total assets</small>
       </article>
 
       <article class="card">
-        <h4>Profit / Pierdere</h4>
+        <h4>Profit / Loss</h4>
         <div class="value" id="pnlValue">0</div>
         <small id="pnlBadge" class="muted">—</small>
       </article>
 
       <article class="card">
-        <h4>Investit (An curent)</h4>
+        <h4>Invested (Current year)</h4>
         <div class="value" id="investedYear">0</div>
         <small class="muted">YTD</small>
       </article>
 
       <article class="card">
-        <h4>Investit (Luna curentă)</h4>
+        <h4>Invested (Current Month)</h4>
         <div class="value" id="investedMonth">0</div>
         <small class="muted">MTD</small>
       </article>
     </section>
 
-    <!-- Chart -->
     <section class="chart">
       <canvas id="growthChart" height="120"></canvas>
       <div class="chart-legend">
-        <span id="growthPercent">0.00%</span> creștere pe perioada selectată
+        <span id="growthPercent">0.00%</span> growth over the selected period
       </div>
     </section>
 
-    <!-- My Investments -->
     <section class="about" id="myInvestments">
       <div class="about-card">
         <div class="list-header">
@@ -98,49 +93,47 @@
           <table class="inv-table">
             <thead>
               <tr>
-                <th>Data & ora</th>
-                <th>Nume</th>
-                <th>Categorie</th>
-                <th>Suma</th>
-                <th>Fișier</th>
-                <th>Descriere</th>
+                <th>Date & time</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>File</th>
+                <th>Description</th>
                 <th></th>
               </tr>
             </thead>
             <tbody id="invRows">
-              <!-- rows generate din JS -->
             </tbody>
           </table>
           <div id="emptyState" class="empty-state" hidden>
-            Nicio înregistrare încă. Apasă <strong>Add investment</strong> pentru a adăuga primul tău asset.
+            No records yet. Click <strong>Add investment</strong> to add your first asset.
           </div>
         </div>
       </div>
 
-      <p class="footer">
-        Built with <span>MoneyMind</span>. Păstrează-ți documentele în siguranță.
-      </p>
+      <footer class="footer">
+        <p>© 2025 <span>MoneyMind</span> • Made by Darius • Mail: <a href="mailto:moneymind@gmail.com">moneymind@gmail.com</a></p>
+      </footer>
     </section>
   </main>
 
-  <!-- Add Investment Modal -->
   <dialog id="addModal">
     <form id="addForm" method="dialog" class="modal">
-      <h3>Adaugă investiție</h3>
+      <h3>Add investments</h3>
 
       <div class="grid">
         <label>
-          <span>Nume</span>
+          <span>Name</span>
           <input name="name" type="text" required placeholder="ex. Vanguard S&P 500 ETF"/>
         </label>
 
         <label>
-          <span>Suma (RON/EUR/USD)</span>
+          <span>Amount (RON/EUR/USD)</span>
           <input name="amount" type="number" step="0.01" min="0" required placeholder="ex. 1200"/>
         </label>
 
         <label>
-          <span>Categorie</span>
+          <span>Category</span>
           <select name="category" required>
             <option>Stocks</option>
             <option>ETF</option>
@@ -152,12 +145,12 @@
         </label>
 
         <label>
-          <span>Data</span>
+          <span>Date</span>
           <input name="date" type="datetime-local" />
         </label>
 
         <label class="full">
-          <span>Descriere</span>
+          <span>Description</span>
           <textarea name="description" rows="3" placeholder="Detalii scurte…"></textarea>
         </label>
 
@@ -168,8 +161,8 @@
       </div>
 
       <div class="modal-actions">
-        <button type="submit" class="primary">Salvează</button>
-        <button type="button" id="closeModal">Renunță</button>
+        <button type="submit" class="primary">Save</button>
+        <button type="button" id="closeModal">Cancel</button>
       </div>
     </form>
   </dialog>

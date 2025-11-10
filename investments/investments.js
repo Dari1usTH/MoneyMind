@@ -120,12 +120,12 @@ function addRow(inv) {
     <td>${link}</td>
     <td>${esc(inv.description || "")}</td>
     <td class="row-actions">
-      <button data-id="${inv.id}" data-action="delete" title="Șterge">🗑️</button>
+      <button data-id="${inv.id}" data-action="delete" title="Delete">🗑️</button>
     </td>
   `;
 
   tr.querySelector('[data-action="delete"]').addEventListener("click", () => {
-    if (confirm("Ștergi această înregistrare?")) {
+    if (confirm("Are you deleting this recording?")) {
       investments = investments.filter(x => x.id !== inv.id);
       saveInvestments(investments);
       renderAll();
@@ -146,7 +146,7 @@ async function onAddSubmit(e) {
   if (file && file.size > 0) {
     const okTypes = ["application/pdf", "image/png", "image/jpeg"];
     if (!okTypes.includes(file.type)) {
-      alert("Accept doar PDF, PNG sau JPG.");
+      alert("Accepted only PDF, PNG or JPG.");
       return;
     }
     fileData = await fileToBase64(file);
@@ -200,9 +200,9 @@ function onImport(e) {
       investments = data;
       saveInvestments(investments);
       renderAll();
-      alert("Import reușit!");
+      alert("Import successful!");
     } catch {
-      alert("Fișier invalid.");
+      alert("Invalid file.");
     }
   };
   reader.readAsText(file);
@@ -296,7 +296,6 @@ function fmtMoney(n) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(n || 0);
 }
 function fmtDate(iso) {
-  // iso poate veni "YYYY-MM-DD HH:mm"
   const s = iso.replace(" ", "T");
   const d = new Date(s);
   return d.toLocaleString();
