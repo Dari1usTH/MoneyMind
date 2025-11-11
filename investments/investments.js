@@ -317,3 +317,16 @@ function esc(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':
 function sanitize(name){ return name.replace(/[^\w\-.]+/g,"_"); }
 
 new ResizeObserver(() => renderChart()).observe(document.querySelector(".chart"));
+
+let lastScrollTop = 0;
+const invNav = document.querySelector('.invnavbar');
+window.addEventListener('scroll', () => {
+  const st = window.pageYOffset || document.documentElement.scrollTop;
+  if (st > lastScrollTop + 10) {
+    invNav.classList.add('hide');
+  } else if (st < lastScrollTop - 10) {
+    invNav.classList.remove('hide');
+  }
+  lastScrollTop = st <= 0 ? 0 : st;
+});
+

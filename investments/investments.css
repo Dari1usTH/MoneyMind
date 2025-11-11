@@ -192,3 +192,61 @@ dialog {
   padding: 20px;
   opacity: .8;
 }
+
+.invnavbar {
+  position: sticky;
+  top: 80px; 
+}
+
+.invnavbar.hide {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+.invnavbar .period-switch {
+  display: flex;
+  gap: 8px;
+}
+
+.invnavbar .period-switch button,
+.invnavbar .toolbar button {
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.invnavbar .period-switch button.active,
+.invnavbar .period-switch button:hover,
+.invnavbar .toolbar button:hover {
+  background: rgba(0, 255, 198, 0.18);
+  box-shadow: 0 0 12px rgba(0, 255, 198, 0.25);
+}
+
+.invnavbar .toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.invnavbar .calendar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+
+.invnavbar .primary {
+  background: linear-gradient(90deg, #00ffc6, #00b3ff);
+  color: #000;
+  font-weight: 700;
+}
+
+#userName {
+  display: none !important;
+}
