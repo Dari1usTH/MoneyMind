@@ -163,7 +163,7 @@ async function onAddSubmit(e) {
     dateISO: toLocalISO(when).slice(0,16).replace("T"," "),
     fileData, fileName, fileType
   };
-
+  
   investments.push(item);
   saveInvestments(investments);
 
