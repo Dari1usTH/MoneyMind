@@ -12,7 +12,7 @@ function clearError() {
   errorBox.textContent = "";
 }
 
-registerBtn.addEventListener("click", () => {
+registerBtn.addEventListener("click", async () => {
   clearError();
 
   const firstName = document.getElementById("nume").value.trim();
@@ -43,22 +43,31 @@ registerBtn.addEventListener("click", () => {
     return;
   }
 
-  const userDisplayName = username || lastName;
-  localStorage.setItem("user", userDisplayName);
+  try {
+    const response = await fetch("register.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        firstName,
+        lastName,
+        username,
+        email,
+        password,
+        dob,
+        phone,
+      }),
+    });
 
-  clearError();
-  errorBox.style.display = "none";
-  alert("Account successfully created!");
-  window.location.href = "../index.html";
+    const result = await response.json();
+
+    if (result.success) {
+      alert("Account successfully created!");
+      window.location.href = "../login/login.html";
+    } else {
+      showError(result.message || "An error occurred while creating the account.");
+    }
+  } catch (error) {
+    console.error(error);
+    showError("Server error. Please try again later.");
+  }
 });
-<<<<<<< HEAD
-
-
-
-// to do
-
-// email verification
-// phone number verification
-// verify already existing account
-=======
->>>>>>> 559b8d65ebc5ce40485f87ff066cc270d578237d
