@@ -6,13 +6,13 @@ function showError(message) {
   errorBox.style.display = "block";
   errorBox.scrollIntoView({ behavior: "smooth", block: "center" });
 }
-
 function clearError() {
   errorBox.style.display = "none";
   errorBox.textContent = "";
 }
 
-registerBtn.addEventListener("click", async () => {
+registerBtn.addEventListener("click", async (e) => {
+  e.preventDefault(); 
   clearError();
 
   const firstName = document.getElementById("nume").value.trim();
@@ -28,37 +28,30 @@ registerBtn.addEventListener("click", async () => {
     showError("Please fill in all required fields!");
     return;
   }
-
   if (password !== confirmPassword) {
     showError("Passwords do not match!");
     return;
   }
-
-  if (
-    username.includes("admin") ||
-    firstName.toLowerCase().includes("admin") ||
-    lastName.toLowerCase().includes("admin")
-  ) {
+  if (username.includes("admin") || firstName.toLowerCase().includes("admin") || lastName.toLowerCase().includes("admin")) {
     showError("You cannot use 'admin' in your first name, last name, or username!");
     return;
   }
 
   try {
-    const response = await fetch("register.php", {
+    const res = await fetch("http://localhost:3001/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        firstName,
-        lastName,
-        username,
-        email,
-        password,
-        dob,
-        phone,
-      }),
+      body: JSON.stringify({ firstName, lastName, username, email, password, dob, phone }),
     });
 
-    const result = await response.json();
+    if (!res.ok) {
+      const txt = await res.text();
+      console.error("Register failed:", res.status, txt);
+      showError("Server error. Please try again later.");
+      return;
+    }
+
+    const result = await res.json();
 
     if (result.success) {
       alert("Account successfully created!");
