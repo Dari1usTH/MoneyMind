@@ -1,0 +1,2 @@
+register -> unsecured
+cand se face redirectul din register in login sa afiseze un mesaj elocvent

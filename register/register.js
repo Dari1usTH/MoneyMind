@@ -1,6 +1,11 @@
 const registerBtn = document.getElementById("registerBtn");
 const errorBox = document.getElementById("errorBox");
 
+const loader = document.createElement("div");
+loader.classList.add("loader");
+loader.style.display = "none";
+document.querySelector(".login-box").appendChild(loader);
+
 function showMessage(type, message) {
   errorBox.textContent = message;
   errorBox.style.display = "block";
@@ -10,19 +15,15 @@ function showMessage(type, message) {
 
   if (type === "error") {
     errorBox.classList.add("error");
-  } else if (type === "success") {
-    errorBox.classList.add("success");
   }
 
   errorBox.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function showError(message) {
+  loader.style.display = "none";
+  registerBtn.disabled = false;
   showMessage("error", message);
-}
-
-function showSuccess(message) {
-  showMessage("success", message);
 }
 
 function clearError() {
@@ -36,6 +37,9 @@ registerBtn.addEventListener("click", async (e) => {
   e.preventDefault();
   clearError();
 
+  registerBtn.disabled = true;
+  loader.style.display = "block";
+
   const firstName = document.getElementById("nume").value.trim();
   const lastName = document.getElementById("prenume").value.trim();
   const username = document.getElementById("username").value.trim().toLowerCase();
@@ -46,20 +50,17 @@ registerBtn.addEventListener("click", async (e) => {
   const phone = document.getElementById("phone").value.trim();
 
   if (!firstName || !lastName || !email || !password || !confirmPassword) {
-    showError("Please fill in all required fields!");
-    return;
+    return showError("Please fill in all required fields!");
   }
   if (password !== confirmPassword) {
-    showError("Passwords do not match!");
-    return;
+    return showError("Passwords do not match!");
   }
   if (
     username.includes("admin") ||
     firstName.toLowerCase().includes("admin") ||
     lastName.toLowerCase().includes("admin")
   ) {
-    showError("You cannot use 'admin' in your first name, last name, or username!");
-    return;
+    return showError("You cannot use 'admin' in your first name, last name, or username!");
   }
 
   try {
@@ -69,23 +70,20 @@ registerBtn.addEventListener("click", async (e) => {
       body: JSON.stringify({ firstName, lastName, username, email, password, dob, phone }),
     });
 
-    if (!res.ok) {
-      const txt = await res.text();
-      console.error("Register failed:", res.status, txt);
-      showError("Server error. Please try again later.");
-      return;
-    }
-
     const result = await res.json();
 
-    if (result.success) {
-      showSuccess("Account successfully created!");
-      window.location.href = "../login/login.html";
-    } else {
-      showError(result.message || "An error occurred while creating the account.");
+    if (!result.success) {
+      return showError(result.message || "An error occurred.");
     }
+
+    loader.style.display = "none";
+    localStorage.setItem("pendingEmail", email);
+    window.location.replace(`../register/emailverify/verify.html?email=${encodeURIComponent(email)}`);
+
   } catch (error) {
     console.error(error);
     showError("Server error. Please try again later.");
   }
 });
+
+

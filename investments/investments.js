@@ -24,7 +24,7 @@ const btnExport = el("#btnExport");
 const importInput = el("#importInput");
 
 init();
-
+s
 function init() {
   const now = new Date();
   monthFilter.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
