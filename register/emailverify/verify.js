@@ -1,36 +1,31 @@
 const verifyBtn = document.getElementById("verifyBtn");
 const errorBox = document.getElementById("errorBox");
 const emailInfo = document.getElementById("emailInfo");
+const loader = document.getElementById("loader");
+
+history.pushState(null, "", location.href);
+window.onpopstate = () => history.pushState(null, "", location.href);
 
 function showMessage(type, message) {
   errorBox.textContent = message;
   errorBox.style.display = "block";
 
-  errorBox.classList.remove("error");
   errorBox.classList.remove("success");
-
-  if (type === "error") {
-    errorBox.classList.add("error");
-  } else if (type === "success") {
-    errorBox.classList.add("success");
-  }
+  errorBox.classList.add("error");
 
   errorBox.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function showError(message) {
+  loader.style.display = "none";
+  verifyBtn.disabled = false;
   showMessage("error", message);
-}
-
-function showSuccess(message) {
-  showMessage("success", message);
 }
 
 function clearError() {
   errorBox.style.display = "none";
   errorBox.textContent = "";
   errorBox.classList.remove("error");
-  errorBox.classList.remove("success");
 }
 
 let email = localStorage.getItem("pendingEmail") || "";
@@ -57,6 +52,9 @@ verifyBtn.addEventListener("click", async (e) => {
     return;
   }
 
+  loader.style.display = "block";
+  verifyBtn.disabled = true;
+
   try {
     const res = await fetch("http://localhost:3001/api/register-verify", {
       method: "POST",
@@ -64,21 +62,11 @@ verifyBtn.addEventListener("click", async (e) => {
       body: JSON.stringify({ email, code }),
     });
 
-    if (!res.ok) {
-      const txt = await res.text();
-      console.error("Verification failed:", res.status, txt);
-      showError("Server error. Please try again later.");
-      return;
-    }
-
     const result = await res.json();
 
     if (result.success) {
-      showSuccess("Your account has been created. Redirecting to login...");
       localStorage.removeItem("pendingEmail");
-      setTimeout(() => {
-        window.location.href = "../login/login.html";
-      }, 1000);
+      window.location.replace("../login/login.html"); 
     } else {
       showError(result.message || "Invalid code. Please try again.");
     }
@@ -87,4 +75,3 @@ verifyBtn.addEventListener("click", async (e) => {
     showError("Server error. Please try again later.");
   }
 });
-
