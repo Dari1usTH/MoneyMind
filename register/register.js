@@ -79,8 +79,11 @@ registerBtn.addEventListener("click", async (e) => {
     const result = await res.json();
 
     if (result.success) {
-      showSuccess("Account successfully created!");
-      window.location.href = "../login/login.html";
+      showSuccess("A verification code has been sent to your email. Redirecting...");
+      localStorage.setItem("pendingEmail", email);
+      setTimeout(() => {
+        window.location.href = "../register/emailverify/verify.html";
+      }, 800);
     } else {
       showError(result.message || "An error occurred while creating the account.");
     }
