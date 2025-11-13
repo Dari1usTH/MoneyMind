@@ -1,18 +1,39 @@
 const registerBtn = document.getElementById("registerBtn");
 const errorBox = document.getElementById("errorBox");
 
-function showError(message) {
+function showMessage(type, message) {
   errorBox.textContent = message;
   errorBox.style.display = "block";
+
+  errorBox.classList.remove("error");
+  errorBox.classList.remove("success");
+
+  if (type === "error") {
+    errorBox.classList.add("error");
+  } else if (type === "success") {
+    errorBox.classList.add("success");
+  }
+
   errorBox.scrollIntoView({ behavior: "smooth", block: "center" });
 }
+
+function showError(message) {
+  showMessage("error", message);
+}
+
+function showSuccess(message) {
+  showMessage("success", message);
+}
+
 function clearError() {
   errorBox.style.display = "none";
   errorBox.textContent = "";
+  errorBox.classList.remove("error");
+  errorBox.classList.remove("success");
 }
 
 registerBtn.addEventListener("click", async (e) => {
-  e.preventDefault(); 
+  e.preventDefault();
   clearError();
 
   const firstName = document.getElementById("nume").value.trim();
@@ -32,7 +53,11 @@ registerBtn.addEventListener("click", async (e) => {
     showError("Passwords do not match!");
     return;
   }
-  if (username.includes("admin") || firstName.toLowerCase().includes("admin") || lastName.toLowerCase().includes("admin")) {
+  if (
+    username.includes("admin") ||
+    firstName.toLowerCase().includes("admin") ||
+    lastName.toLowerCase().includes("admin")
+  ) {
     showError("You cannot use 'admin' in your first name, last name, or username!");
     return;
   }
@@ -54,7 +79,7 @@ registerBtn.addEventListener("click", async (e) => {
     const result = await res.json();
 
     if (result.success) {
-      alert("Account successfully created!");
+      showSuccess("Account successfully created!");
       window.location.href = "../login/login.html";
     } else {
       showError(result.message || "An error occurred while creating the account.");
