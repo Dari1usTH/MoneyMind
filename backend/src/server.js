@@ -218,5 +218,142 @@ app.post('/api/register-verify', async (req, res) => {
   }
 });
 
+app.post('/api/login', async (req, res) => {
+  try {
+    const { identifier, password } = req.body || {};
+
+    if (!identifier || !password) {
+      return res.json({ success: false, message: "Please fill in all fields!" });
+    }
+
+    const conn = await pool.getConnection();
+    let rows;
+    try {
+      rows = (
+        await conn.execute(
+          'SELECT id, email, username, password FROM users WHERE email = ? OR username = ? LIMIT 1',
+          [identifier, identifier]
+        )
+      )[0];
+    } finally {
+      conn.release();
+    }
+
+    if (!rows.length) {
+      return res.json({
+        success: false,
+        message: "This user does not exist. Please register first!",
+      });
+    }
+
+    const user = rows[0];
+
+    const passMatch = await bcrypt.compare(password, user.password);
+    if (!passMatch) {
+      return res.json({
+        success: false,
+        message: "Incorrect password. Please try again.",
+      });
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+
+    pendingLoginUsers.set(user.email, {
+      id: user.id,
+      email: user.email,
+      code,
+      expiresAt,
+    });
+
+    await mailTransporter.sendMail({
+      from: process.env.MAIL_FROM || process.env.MAIL_USER,
+      to: user.email,
+      subject: "MoneyMind - Login Verification Code",
+      html: `
+        <h2>MoneyMind Login Verification</h2>
+        <p>Your login verification code is:</p>
+        <h1 style="letter-spacing:6px">${code}</h1>
+        <p>The code expires in 10 minutes.</p>
+      `,
+    });
+
+    return res.json({
+      success: true,
+      message: "A login verification code has been sent to your email.",
+      email: user.email,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.json({
+      success: false,
+      message: "Server error. Please try again later.",
+    });
+  }
+});
+
+app.post('/api/login-verify', async (req, res) => {
+  try {
+    const { email, code, remember } = req.body || {};
+
+    if (!email || !code) {
+      return res.json({
+        success: false,
+        message: "Email and code are required.",
+      });
+    }
+
+    const pending = pendingLoginUsers.get(email);
+    if (!pending) {
+      return res.json({
+        success: false,
+        message: "No pending login found. Please try again.",
+      });
+    }
+
+    if (Date.now() > pending.expiresAt) {
+      pendingLoginUsers.delete(email);
+      return res.json({
+        success: false,
+        message: "Verification code expired. Please login again.",
+      });
+    }
+
+    if (pending.code !== code) {
+      return res.json({
+        success: false,
+        message: "Invalid code. Please try again.",
+      });
+    }
+
+    pendingLoginUsers.delete(email);
+
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: false,
+    };
+
+    if (remember) {
+      cookieOptions.maxAge = 30 * 24 * 60 * 60 * 1000;
+    }
+
+    res.cookie("session", pending.id, cookieOptions);
+
+    return res.json({
+      success: true,
+      message: "Login successful!",
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.json({
+      success: false,
+      message: "Server error.",
+    });
+  }
+});
+
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));

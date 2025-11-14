@@ -66,11 +66,7 @@ verifyBtn.addEventListener("click", async (e) => {
 
     if (result.success) {
       localStorage.removeItem("pendingEmail");
-<<<<<<< HEAD
       window.location.replace("../../login/login.html");
-=======
-      window.location.replace("../login/login.html"); 
->>>>>>> 797c6b869f2e9f0039cdb49bf39b4977efda9edf
     } else {
       showError(result.message || "Invalid code. Please try again.");
     }
@@ -78,8 +74,4 @@ verifyBtn.addEventListener("click", async (e) => {
     console.error(err);
     showError("Server error. Please try again later.");
   }
-<<<<<<< HEAD
 });
-=======
-});
->>>>>>> 797c6b869f2e9f0039cdb49bf39b4977efda9edf
