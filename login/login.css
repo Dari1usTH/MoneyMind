@@ -252,6 +252,18 @@ h1 span{ color:#00ffc6; }
   box-shadow: 0 0 0 1000px rgba(255,255,255,0.10) inset !important;
 }
 
+.error-box {
+  background-color: rgba(255, 0, 0, 0.15);
+  border: 1px solid rgba(255, 75, 75, 1);
+  color: #ff6b6b;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-weight: 500;
+  font-size: 14px;
+  animation: fadeIn 0.4s ease;
+}
+
 @keyframes fadeIn{
   from{opacity:0; transform:translateY(20px);}
   to{opacity:1; transform:translateY(0);}

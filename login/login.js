@@ -1,7 +1,7 @@
 const loginBtn = document.getElementById("loginBtn");
 const errorBox = document.getElementById("errorBox");
 
-function showError(msg){
+function showError(msg) {
   errorBox.textContent = msg;
   errorBox.style.display = "block";
 }
@@ -10,9 +10,9 @@ loginBtn.addEventListener("click", async (e) => {
   e.preventDefault();
   errorBox.style.display = "none";
 
-  const identifier = document.getElementById("user").value.trim();
-  const password = document.getElementById("pass").value.trim();
-  const remember = document.getElementById("remember").checked;
+  const identifier = document.getElementById("username").value.trim();
+  const password   = document.getElementById("password").value.trim();
+  const remember   = document.getElementById("remember").checked;
 
   if (!identifier || !password) {
     return showError("Please fill in all fields!");
@@ -33,10 +33,10 @@ loginBtn.addEventListener("click", async (e) => {
 
     localStorage.setItem("pendingLoginEmail", result.email);
     localStorage.setItem("loginRemember", remember ? "1" : "0");
-    
-    window.location.href = "./emailverify/verify.html";
 
+    window.location.href = "./emailverify/verify.html";
   } catch (err) {
+    console.error(err);
     showError("Server error. Try again later.");
   }
 });

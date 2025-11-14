@@ -28,6 +28,7 @@ const mailTransporter = nodemailer.createTransport({
 });
 
 const pendingUsers = new Map();
+const pendingLoginUsers = new Map();
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 
