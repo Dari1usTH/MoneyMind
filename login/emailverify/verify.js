@@ -6,9 +6,13 @@ const emailInfo = document.getElementById("emailInfo");
 const email = localStorage.getItem("pendingLoginEmail");
 const remember = localStorage.getItem("loginRemember") === "1";
 
-emailInfo.textContent = email ? `Code sent to: ${email}` : "No email found.";
+if (email) {
+  emailInfo.textContent = `Code sent to: ${email}`;
+} else {
+  emailInfo.textContent = "No email found. Please go back and login again.";
+}
 
-function showError(msg){
+function showError(msg) {
   errorBox.textContent = msg;
   errorBox.style.display = "block";
 }
@@ -17,7 +21,9 @@ verifyBtn.addEventListener("click", async () => {
   errorBox.style.display = "none";
 
   const code = document.getElementById("code").value.trim();
-  if (code.length !== 6) return showError("Enter a valid 6-digit code!");
+  if (code.length !== 6) {
+    return showError("Enter a valid 6-digit code!");
+  }
 
   loader.style.display = "block";
   verifyBtn.disabled = true;
@@ -27,7 +33,7 @@ verifyBtn.addEventListener("click", async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, code, remember }),
-      credentials: "include",
+      credentials: "include",  
     });
 
     const result = await res.json();
@@ -38,12 +44,18 @@ verifyBtn.addEventListener("click", async () => {
       return showError(result.message);
     }
 
+    localStorage.setItem("user", email);
+
     localStorage.removeItem("pendingLoginEmail");
     localStorage.removeItem("loginRemember");
 
     window.location.href = "../../index.html";
 
-  } catch (err){
+  } catch (err) {
+    console.error(err);
     showError("Server error.");
+    loader.style.display = "none";
+    verifyBtn.disabled = false;
   }
 });
+

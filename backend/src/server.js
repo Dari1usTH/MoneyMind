@@ -355,6 +355,14 @@ app.post('/api/login-verify', async (req, res) => {
   }
 });
 
+app.post('/api/logout', (req, res) => {
+  res.clearCookie('session', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: false, // true if https
+  });
 
+  return res.json({ success: true });
+});
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
