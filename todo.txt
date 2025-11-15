@@ -10,4 +10,10 @@ https://myaccount.google.com/apppasswords
 register birthdte not null
 emailverify backtoregister button not workign properly
 update database if username null -> username = firstname
+
+
 adaugat cerc login + block buton
+enter -> press button
+notifyu login account done
+
+chat intre useri

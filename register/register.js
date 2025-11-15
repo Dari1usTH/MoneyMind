@@ -46,7 +46,8 @@ registerBtn.addEventListener("click", async (e) => {
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value.trim();
   const confirmPassword = document.getElementById("confirmPassword").value.trim();
-  const dob = document.getElementById("dob").value.trim();
+  const dobInput = document.getElementById("dob").value.trim();
+  const dob = dobInput === "" ? null : dobInput;
   const phone = document.getElementById("phone").value.trim();
 
   if (!firstName || !lastName || !email || !password || !confirmPassword) {
@@ -85,5 +86,3 @@ registerBtn.addEventListener("click", async (e) => {
     showError("Server error. Please try again later.");
   }
 });
-
-

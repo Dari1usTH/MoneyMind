@@ -1,4 +1,7 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({
+  path: path.join('D:', 'Proiecte', '.env')
+});
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
@@ -56,7 +59,8 @@ app.post('/api/register', async (req, res) => {
         message: "You cannot use 'admin' in your first name, last name, or username!",
       });
     }
-
+    
+    const finalUsername = (username || firstName).trim();
     const conn = await pool.getConnection();
     try {
       const [dupRows] = await conn.execute(
@@ -108,7 +112,7 @@ app.post('/api/register', async (req, res) => {
     pendingUsers.set(email, {
       firstName,
       lastName,
-      username: username || lastName,
+      username: finalUsername,
       email,
       passwordHash,
       dob: dob || null,
@@ -370,3 +374,4 @@ app.post('/api/logout', (req, res) => {
 });
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
+
