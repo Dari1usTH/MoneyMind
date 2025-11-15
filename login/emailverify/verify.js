@@ -44,7 +44,8 @@ verifyBtn.addEventListener("click", async () => {
       return showError(result.message);
     }
 
-    localStorage.setItem("user", email);
+    const displayName = result.username || result.first_name;
+    localStorage.setItem("user", displayName);
 
     localStorage.removeItem("pendingLoginEmail");
     localStorage.removeItem("loginRemember");

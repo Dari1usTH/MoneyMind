@@ -232,7 +232,7 @@ app.post('/api/login', async (req, res) => {
     try {
       rows = (
         await conn.execute(
-          'SELECT id, email, username, password FROM users WHERE email = ? OR username = ? LIMIT 1',
+          'SELECT id, email, username, first_name, password FROM users WHERE email = ? OR username = ? LIMIT 1',
           [identifier, identifier]
         )
       )[0];
@@ -263,6 +263,8 @@ app.post('/api/login', async (req, res) => {
     pendingLoginUsers.set(user.email, {
       id: user.id,
       email: user.email,
+      username: user.username,
+      first_name: user.first_name,
       code,
       expiresAt,
     });
@@ -344,6 +346,8 @@ app.post('/api/login-verify', async (req, res) => {
     return res.json({
       success: true,
       message: "Login successful!",
+      username: pending.username,
+      first_name: pending.first_name,
     });
 
   } catch (err) {
