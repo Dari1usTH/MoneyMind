@@ -6,13 +6,7 @@ https://myaccount.google.com/apppasswords
 
 
 
-
-register birthdte not null
-emailverify backtoregister button not workign properly
-update database if username null -> username = firstname
-
-
-adaugat cerc login + block buton
+adaugat cerc login + block buton (done)
 enter -> press button
 notifyu login account done
 

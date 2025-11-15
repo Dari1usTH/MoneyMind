@@ -1,14 +1,29 @@
 const loginBtn = document.getElementById("loginBtn");
 const errorBox = document.getElementById("errorBox");
 
+const loader = document.createElement("div");
+loader.classList.add("loader");
+loader.style.display = "none";
+document.querySelector(".login-box").appendChild(loader);
+
 function showError(msg) {
+  loader.style.display = "none";
+  loginBtn.disabled = false;
   errorBox.textContent = msg;
   errorBox.style.display = "block";
 }
 
+function clearError() {
+  errorBox.style.display = "none";
+  errorBox.textContent = "";
+}
+
 loginBtn.addEventListener("click", async (e) => {
   e.preventDefault();
-  errorBox.style.display = "none";
+  clearError();
+
+  loginBtn.disabled = true;      
+  loader.style.display = "block";
 
   const identifier = document.getElementById("username").value.trim();
   const password   = document.getElementById("password").value.trim();
@@ -30,6 +45,8 @@ loginBtn.addEventListener("click", async (e) => {
     if (!result.success) {
       return showError(result.message);
     }
+
+    loader.style.display = "none";  
 
     localStorage.setItem("pendingLoginEmail", result.email);
     localStorage.setItem("loginRemember", remember ? "1" : "0");
