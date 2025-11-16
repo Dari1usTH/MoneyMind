@@ -1,14 +1,25 @@
 const loginBtn = document.getElementById("loginBtn");
 const errorBox = document.getElementById("errorBox");
+const successBox = document.getElementById("successBox");
 
 const loader = document.createElement("div");
 loader.classList.add("loader");
 loader.style.display = "none";
 document.querySelector(".login-box").appendChild(loader);
 
+document.addEventListener("DOMContentLoaded", () => {
+  const accountCreated = localStorage.getItem("accountCreated");
+  if (accountCreated) {
+    successBox.textContent = "Your account has been created successfully. You can now log in.";
+    successBox.style.display = "block";
+    localStorage.removeItem("accountCreated");
+  }
+});
+
 function showError(msg) {
   loader.style.display = "none";
   loginBtn.disabled = false;
+  successBox.style.display = "none";
   errorBox.textContent = msg;
   errorBox.style.display = "block";
 }
@@ -16,6 +27,7 @@ function showError(msg) {
 function clearError() {
   errorBox.style.display = "none";
   errorBox.textContent = "";
+  successBox.style.display = "none";
 }
 
 loginBtn.addEventListener("click", async (e) => {
@@ -59,7 +71,9 @@ loginBtn.addEventListener("click", async (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
+  if (e.key === "Enter" || e.key === "NumpadEnter") {
+    e.preventDefault();
     loginBtn.click();
   }
 });
+

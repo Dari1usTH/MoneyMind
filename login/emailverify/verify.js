@@ -60,9 +60,9 @@ verifyBtn.addEventListener("click", async () => {
   }
 });
 
-
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
+  if (e.key === "Enter" || e.key === "NumpadEnter") {
+    e.preventDefault();
     verifyBtn.click();
   }
 });

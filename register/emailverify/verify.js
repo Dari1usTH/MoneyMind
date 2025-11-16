@@ -66,6 +66,7 @@ verifyBtn.addEventListener("click", async (e) => {
 
     if (result.success) {
       localStorage.removeItem("pendingEmail");
+      localStorage.setItem("accountCreated", "1");
       window.location.replace("../../login/login.html");
     } else {
       showError(result.message || "Invalid code. Please try again.");
@@ -77,7 +78,8 @@ verifyBtn.addEventListener("click", async (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
+  if (e.key === "Enter" || e.key === "NumpadEnter") {
+    e.preventDefault();
     verifyBtn.click();
   }
 });

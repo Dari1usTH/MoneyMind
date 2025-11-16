@@ -9,3 +9,11 @@ https://myaccount.google.com/apppasswords
 notifyu login account done
 
 chat intre useri
+
+
+
+
+
+------------------- what done ----------------
+Numpad Enter -> pess buton register,login,wmailverify page
+Fix enter bug not execute comand click
