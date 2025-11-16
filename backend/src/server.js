@@ -1,4 +1,7 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({
+  path: path.join('D:', 'Proiecte', '.env')
+});
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
@@ -56,7 +59,8 @@ app.post('/api/register', async (req, res) => {
         message: "You cannot use 'admin' in your first name, last name, or username!",
       });
     }
-
+    
+    const finalUsername = (username || firstName).trim();
     const conn = await pool.getConnection();
     try {
       const [dupRows] = await conn.execute(
@@ -108,7 +112,7 @@ app.post('/api/register', async (req, res) => {
     pendingUsers.set(email, {
       firstName,
       lastName,
-      username: username || lastName,
+      username: finalUsername,
       email,
       passwordHash,
       dob: dob || null,
@@ -232,7 +236,7 @@ app.post('/api/login', async (req, res) => {
     try {
       rows = (
         await conn.execute(
-          'SELECT id, email, username, password FROM users WHERE email = ? OR username = ? LIMIT 1',
+          'SELECT id, email, username, first_name, password FROM users WHERE email = ? OR username = ? LIMIT 1',
           [identifier, identifier]
         )
       )[0];
@@ -263,6 +267,8 @@ app.post('/api/login', async (req, res) => {
     pendingLoginUsers.set(user.email, {
       id: user.id,
       email: user.email,
+      username: user.username,
+      first_name: user.first_name,
       code,
       expiresAt,
     });
@@ -344,6 +350,8 @@ app.post('/api/login-verify', async (req, res) => {
     return res.json({
       success: true,
       message: "Login successful!",
+      username: pending.username,
+      first_name: pending.first_name,
     });
 
   } catch (err) {
@@ -366,3 +374,4 @@ app.post('/api/logout', (req, res) => {
 });
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
+
