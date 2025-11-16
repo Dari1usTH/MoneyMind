@@ -57,3 +57,10 @@ loginBtn.addEventListener("click", async (e) => {
     showError("Server error. Try again later.");
   }
 });
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    loginBtn.click();
+  }
+});
+

@@ -6,8 +6,6 @@ https://myaccount.google.com/apppasswords
 
 
 
-adaugat cerc login + block buton (done)
-enter -> press button
 notifyu login account done
 
 chat intre useri

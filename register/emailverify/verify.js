@@ -75,3 +75,9 @@ verifyBtn.addEventListener("click", async (e) => {
     showError("Server error. Please try again later.");
   }
 });
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    verifyBtn.click();
+  }
+})
