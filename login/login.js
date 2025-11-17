@@ -62,6 +62,16 @@ loginBtn.addEventListener("click", async (e) => {
 
     localStorage.setItem("pendingLoginEmail", result.email);
     localStorage.setItem("loginRemember", remember ? "1" : "0");
+    if (result.expiresAt) {
+      localStorage.setItem("loginCodeExpiresAt", String(result.expiresAt));
+    } else {
+      localStorage.setItem(
+        "loginCodeExpiresAt",
+        String(Date.now() + 10 * 60 * 1000)
+      );
+    }
+    localStorage.removeItem("resendAttempts");
+    localStorage.removeItem("resendAvailableAt");
 
     window.location.href = "./emailverify/verify.html";
   } catch (err) {
@@ -76,4 +86,5 @@ document.addEventListener("keydown", (e) => {
     loginBtn.click();
   }
 });
+
 

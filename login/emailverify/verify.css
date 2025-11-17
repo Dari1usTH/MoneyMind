@@ -195,3 +195,30 @@ h1 span{ color:#00ffc6; }
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.timer-row {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #bbb;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.resend-link {
+  background: none;
+  border: none;
+  color: #00ffc6;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+.resend-link:disabled {
+  color: #777;
+  cursor: not-allowed;
+  text-decoration: none;
+}

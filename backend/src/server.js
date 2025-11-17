@@ -289,6 +289,7 @@ app.post('/api/login', async (req, res) => {
       success: true,
       message: "A login verification code has been sent to your email.",
       email: user.email,
+      expiresAt,
     });
   } catch (err) {
     console.error(err);
@@ -359,6 +360,58 @@ app.post('/api/login-verify', async (req, res) => {
     return res.json({
       success: false,
       message: "Server error.",
+    });
+  }
+});
+
+app.post('/api/login-resend', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+
+    if (!email) {
+      return res.json({
+        success: false,
+        message: "Email is required.",
+      });
+    }
+
+    const pending = pendingLoginUsers.get(email);
+    if (!pending) {
+      return res.json({
+        success: false,
+        message: "No pending login found. Please try logging in again.",
+      });
+    }
+
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    pending.code = newCode;
+    pending.expiresAt = Date.now() + 10 * 60 * 1000;
+    pendingLoginUsers.set(email, pending);
+
+    await mailTransporter.sendMail({
+      from: process.env.MAIL_FROM || process.env.MAIL_USER,
+      to: email,
+      subject: "MoneyMind - Login Verification Code (Resent)",
+      html: `
+        <h2>MoneyMind Login Verification</h2>
+        <p>Your new login verification code is:</p>
+        <h1 style="letter-spacing:6px">${newCode}</h1>
+        <p>The code expires in 10 minutes.</p>
+      `,
+    });
+
+    return res.json({
+      success: true,
+      message: "A new verification code has been sent to your email.",
+      expiresAt: pending.expiresAt,
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.json({
+      success: false,
+      message: "Could not resend code. Please try again later.",
     });
   }
 });
