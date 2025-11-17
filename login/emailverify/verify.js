@@ -4,6 +4,7 @@ const timerBox = document.getElementById("timerBox");
 const errorBox = document.getElementById("errorBox");
 const loader = document.getElementById("loader");
 const emailInfo = document.getElementById("emailInfo");
+const otpInputs = document.querySelectorAll(".otp-input");
 
 const email = localStorage.getItem("pendingLoginEmail");
 const remember = localStorage.getItem("loginRemember") === "1";
@@ -14,7 +15,6 @@ let expirationTime = Number(localStorage.getItem("loginCodeExpiresAt") || "0");
 let expirationIntervalId = null;
 let resendIntervalId = null;
 
-// --------- INIT EMAIL INFO ----------
 if (email) {
   emailInfo.textContent = `Code sent to: ${email}`;
 } else {
@@ -23,13 +23,11 @@ if (email) {
   resendBtn.disabled = true;
 }
 
-// --------- HELPER EROARE ----------
 function showError(msg) {
   errorBox.textContent = msg;
   errorBox.style.display = "block";
 }
 
-// --------- EXPIRATION TIMER (SINCRON CU BACKEND) ----------
 function updateExpirationText() {
   if (!expirationTime) {
     timerBox.textContent = "";
@@ -41,7 +39,6 @@ function updateExpirationText() {
   if (remaining <= 0) {
     timerBox.textContent = "Code expired. You can request a new one.";
     verifyBtn.disabled = true;
-    // resend rămâne controlat de cooldown
     return;
   }
 
@@ -60,12 +57,11 @@ function startExpirationTimer() {
   expirationIntervalId = setInterval(updateExpirationText, 1000);
 }
 
-// --------- RESEND COOLDOWN ----------
 function getCooldownTime() {
-  if (resendAttempts === 0) return 30;    // după prima apăsare → 30s
-  if (resendAttempts === 1) return 120;   // a doua → 2 min
-  if (resendAttempts === 2) return 300;   // a treia → 5 min
-  return 300;                             // după → 5 min
+  if (resendAttempts === 0) return 30;    
+  if (resendAttempts === 1) return 120;   
+  if (resendAttempts === 2) return 300;  
+  return 300;                            
 }
 
 function updateResendButton() {
@@ -87,7 +83,7 @@ function updateResendButton() {
   } else {
     const seconds = Math.ceil(diff / 1000);
     resendBtn.disabled = true;
-    resendBtn.textContent = `Resend in ${seconds}s`;
+    resendBtn.textContent = `Resend again in ${seconds}s`;
   }
 }
 
@@ -102,7 +98,6 @@ function startResendCooldown() {
   resendIntervalId = setInterval(updateResendButton, 1000);
 }
 
-// init la încărcare pagină
 if (expirationTime && email) {
   startExpirationTimer();
 }
@@ -112,7 +107,6 @@ if (existingAvailableAt && existingAvailableAt > Date.now()) {
   resendIntervalId = setInterval(updateResendButton, 1000);
 }
 
-// --------- RESEND CLICK ----------
 resendBtn.addEventListener("click", async () => {
   if (!email) return;
 
@@ -147,7 +141,6 @@ resendBtn.addEventListener("click", async () => {
   }
 });
 
-// --------- VERIFY CLICK ----------
 verifyBtn.addEventListener("click", async () => {
   errorBox.style.display = "none";
 
@@ -194,10 +187,74 @@ verifyBtn.addEventListener("click", async () => {
   }
 });
 
-// ENTER = submit
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" || e.key === "NumpadEnter") {
-    e.preventDefault();
+    e.preventDefault(); 
     verifyBtn.click();
   }
 });
+
+otpInputs.forEach((input, index) => {
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/\D/g, "");
+
+    if (input.value.length === 1 && index < otpInputs.length - 1) {
+      otpInputs[index + 1].focus();
+    }
+
+    let code = "";
+    otpInputs.forEach(i => code += i.value);
+
+    if (code.length === 6) {
+      autoVerify(code);
+    }
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Backspace" && !input.value && index > 0) {
+      otpInputs[index - 1].focus();
+    }
+  });
+});
+
+async function autoVerify(code) {
+  errorBox.style.display = "none";
+  loader.style.display = "block";
+  verifyBtn.disabled = true;
+
+  try {
+    const res = await fetch("http://localhost:3001/api/login-verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code, remember }),
+      credentials: "include",
+    });
+
+    const result = await res.json();
+
+    if (!result.success) {
+      loader.style.display = "none";
+      verifyBtn.disabled = false;
+      otpInputs.forEach(i => i.value = "");
+      otpInputs[0].focus();
+      return showError(result.message);
+    }
+
+    const displayName = result.username || result.first_name;
+    localStorage.setItem("user", displayName);
+
+    localStorage.removeItem("pendingLoginEmail");
+    localStorage.removeItem("loginRemember");
+    localStorage.removeItem("resendAttempts");
+    localStorage.removeItem("resendAvailableAt");
+    localStorage.removeItem("loginCodeExpiresAt");
+
+    window.location.href = "../../index.html";
+
+  } catch (err) {
+    console.error(err);
+    showError("Server error.");
+    loader.style.display = "none";
+    verifyBtn.disabled = false;
+  }
+}
