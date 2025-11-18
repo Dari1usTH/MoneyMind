@@ -94,12 +94,6 @@ h1 span{ color:#00ffc6; }
   transition:.25s;
 }
 
-.input-group input:focus{
-  outline:none;
-  border-bottom:1px solid #00ffc6;
-  box-shadow:0 2px 8px rgba(0,255,198,0.3);
-}
-
 .options{
   display:flex;
   justify-content:space-between;

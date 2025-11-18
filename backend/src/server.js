@@ -65,7 +65,7 @@ app.post('/api/register', async (req, res) => {
     try {
       const [dupRows] = await conn.execute(
         'SELECT id, username, email, phone_number FROM users WHERE username = ? OR email = ? OR phone_number = ? LIMIT 1',
-        [username || null, email, phone || null]
+        [finalUsername || null, email, phone || null]
       );
 
       if (dupRows.length) {
@@ -87,7 +87,7 @@ app.post('/api/register', async (req, res) => {
           });
         }
 
-        if (username && existing.username === username) {
+        if (finalUsername && existing.username === finalUsername) {
           return res.json({
             success: false,
             message:
@@ -103,6 +103,7 @@ app.post('/api/register', async (req, res) => {
     } finally {
       conn.release();
     }
+
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -131,7 +132,7 @@ app.post('/api/register', async (req, res) => {
           <h2>MoneyMind - Email Verification</h2>
           <p>Your verification code is:</p>
           <h1 style="letter-spacing: 6px;">${code}</h1>
-          <p>This code will expire in 15 minutes.</p>
+          <p>This code will expire in 10 minutes.</p>
         `,
       });
     } catch (mailErr) {
@@ -257,7 +258,7 @@ app.post('/api/register-resend', async (req, res) => {
         <h2>MoneyMind Registration Verification</h2>
         <p>Your new verification code is:</p>
         <h1 style="letter-spacing: 6px;">${newCode}</h1>
-        <p>The code expires in 15 minutes.</p>
+        <p>The code expires in 10 minutes.</p>
       `,
     });
 
@@ -290,13 +291,14 @@ app.post('/api/login', async (req, res) => {
     try {
       rows = (
         await conn.execute(
-          'SELECT id, email, username, first_name, password FROM users WHERE email = ? OR username = ? LIMIT 1',
-          [identifier, identifier]
+          'SELECT id, email, username, first_name, password, phone_number FROM users WHERE email = ? OR username = ? OR phone_number = ? LIMIT 1',
+          [identifier, identifier, identifier]
         )
       )[0];
     } finally {
       conn.release();
     }
+
 
     if (!rows.length) {
       return res.json({

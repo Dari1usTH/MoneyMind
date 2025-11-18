@@ -14,6 +14,7 @@ let expirationTime = Number(localStorage.getItem("loginCodeExpiresAt") || "0");
 
 let expirationIntervalId = null;
 let resendIntervalId = null;
+let isVerifying = false;
 
 if (email) {
   emailInfo.textContent = `Code sent to: ${email}`;
@@ -21,11 +22,6 @@ if (email) {
   emailInfo.textContent = "No email found. Please go back and login again.";
   verifyBtn.disabled = true;
   resendBtn.disabled = true;
-}
-
-if (!localStorage.getItem("resendAvailableAt")) {
-  const firstCooldown = Date.now() + 30 * 1000;
-  localStorage.setItem("resendAvailableAt", String(firstCooldown));
 }
 
 function showError(msg) {
@@ -55,7 +51,7 @@ function updateExpirationText() {
 }
 
 function startExpirationTimer() {
-  if (!expirationTime) return;
+  if (!expirationTime || !email) return;
   if (expirationIntervalId) clearInterval(expirationIntervalId);
 
   updateExpirationText();
@@ -63,23 +59,22 @@ function startExpirationTimer() {
 }
 
 function getCooldownTime() {
-  if (resendAttempts === 0) return 30;    
-  if (resendAttempts === 1) return 120;   
-  if (resendAttempts === 2) return 300;  
-  return 300;                            
+  if (resendAttempts === 0) return 30;   
+  if (resendAttempts === 1) return 120; 
+  return 300;                          
 }
 
 function updateResendButton() {
   const availableAt = Number(localStorage.getItem("resendAvailableAt") || "0");
   if (!availableAt) {
-    resendBtn.disabled = false;
+    resendBtn.disabled = !email;
     resendBtn.textContent = "Resend code";
     return;
   }
 
   const diff = availableAt - Date.now();
   if (diff <= 0) {
-    resendBtn.disabled = false;
+    resendBtn.disabled = !email;
     resendBtn.textContent = "Resend code";
     if (resendIntervalId) {
       clearInterval(resendIntervalId);
@@ -117,9 +112,10 @@ resendBtn.addEventListener("click", async () => {
 
   errorBox.style.display = "none";
 
-  resendAttempts++;
-  localStorage.setItem("resendAttempts", String(resendAttempts));
-  startResendCooldown();
+  const availableAt = Number(localStorage.getItem("resendAvailableAt") || "0");
+  if (availableAt && availableAt > Date.now()) {
+    return;
+  }
 
   try {
     const res = await fetch("http://localhost:3001/api/login-resend", {
@@ -137,23 +133,34 @@ resendBtn.addEventListener("click", async () => {
 
     if (data.expiresAt) {
       expirationTime = Number(data.expiresAt);
-      localStorage.setItem("loginCodeExpiresAt", String(expirationTime));
-      startExpirationTimer();
+    } else {
+      expirationTime = Date.now() + 10 * 60 * 1000;
     }
+    localStorage.setItem("loginCodeExpiresAt", String(expirationTime));
+    startExpirationTimer();
+
+    resendAttempts += 1;
+    localStorage.setItem("resendAttempts", String(resendAttempts));
+    startResendCooldown();
   } catch (e) {
     console.error(e);
     showError("Could not resend code.");
   }
 });
 
-verifyBtn.addEventListener("click", async () => {
-  errorBox.style.display = "none";
-
-  const code = document.getElementById("code").value.trim();
+async function submitCode(code, { auto = false } = {}) {
   if (code.length !== 6) {
-    return showError("Enter a valid 6-digit code!");
+    if (!auto) {
+      showError("Enter a valid 6-digit code!");
+    }
+    return;
   }
 
+  if (!email) return;
+  if (isVerifying) return;
+
+  isVerifying = true;
+  errorBox.style.display = "none";
   loader.style.display = "block";
   verifyBtn.disabled = true;
 
@@ -168,13 +175,18 @@ verifyBtn.addEventListener("click", async () => {
     const result = await res.json();
 
     if (!result.success) {
-      loader.style.display = "none";
-      verifyBtn.disabled = false;
-      return showError(result.message);
+      otpInputs.forEach((i) => (i.value = ""));
+      if (otpInputs.length) {
+        otpInputs[0].focus();
+      }
+      showError(result.message);
+      return;
     }
 
     const displayName = result.username || result.first_name;
-    localStorage.setItem("user", displayName);
+    if (displayName) {
+      localStorage.setItem("user", displayName);
+    }
 
     localStorage.removeItem("pendingLoginEmail");
     localStorage.removeItem("loginRemember");
@@ -183,18 +195,27 @@ verifyBtn.addEventListener("click", async () => {
     localStorage.removeItem("loginCodeExpiresAt");
 
     window.location.href = "../../index.html";
-
   } catch (err) {
     console.error(err);
     showError("Server error.");
+  } finally {
     loader.style.display = "none";
     verifyBtn.disabled = false;
+    isVerifying = false;
   }
+}
+
+verifyBtn.addEventListener("click", () => {
+  if (!email) return;
+
+  let code = "";
+  otpInputs.forEach((i) => (code += i.value));
+  submitCode(code, { auto: false });
 });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" || e.key === "NumpadEnter") {
-    e.preventDefault(); 
+    e.preventDefault();
     verifyBtn.click();
   }
 });
@@ -208,10 +229,10 @@ otpInputs.forEach((input, index) => {
     }
 
     let code = "";
-    otpInputs.forEach(i => code += i.value);
+    otpInputs.forEach((i) => (code += i.value));
 
     if (code.length === 6) {
-      autoVerify(code);
+      submitCode(code, { auto: true });
     }
   });
 
@@ -221,45 +242,3 @@ otpInputs.forEach((input, index) => {
     }
   });
 });
-
-async function autoVerify(code) {
-  errorBox.style.display = "none";
-  loader.style.display = "block";
-  verifyBtn.disabled = true;
-
-  try {
-    const res = await fetch("http://localhost:3001/api/login-verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, code, remember }),
-      credentials: "include",
-    });
-
-    const result = await res.json();
-
-    if (!result.success) {
-      loader.style.display = "none";
-      verifyBtn.disabled = false;
-      otpInputs.forEach(i => i.value = "");
-      otpInputs[0].focus();
-      return showError(result.message);
-    }
-
-    const displayName = result.username || result.first_name;
-    localStorage.setItem("user", displayName);
-
-    localStorage.removeItem("pendingLoginEmail");
-    localStorage.removeItem("loginRemember");
-    localStorage.removeItem("resendAttempts");
-    localStorage.removeItem("resendAvailableAt");
-    localStorage.removeItem("loginCodeExpiresAt");
-
-    window.location.href = "../../index.html";
-
-  } catch (err) {
-    console.error(err);
-    showError("Server error.");
-    loader.style.display = "none";
-    verifyBtn.disabled = false;
-  }
-}

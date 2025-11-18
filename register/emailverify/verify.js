@@ -144,6 +144,8 @@ verifyBtn.addEventListener("click", async () => {
     return;
   }
 
+  localStorage.setItem("accountCreated", "1");
+
   localStorage.removeItem("pendingEmail");
   localStorage.removeItem("registerCodeExpiresAt");
   localStorage.removeItem("registerResendAvailableAt");

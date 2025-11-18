@@ -4,9 +4,6 @@ chat intre useri
 are you a human( o data cand intra pe login page )
 forgot password backend page
 birthdate css
-resend code email register
-
-
 ---------------- bug ---------------------
 login resend code not good message
 
