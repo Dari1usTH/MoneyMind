@@ -108,7 +108,8 @@ app.post('/api/register', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const expiresAt = Date.now() + 15 * 60 * 1000; 
+    const expiresAt = Date.now() + 10 * 60 * 1000; 
+
     pendingUsers.set(email, {
       firstName,
       lastName,
@@ -126,13 +127,10 @@ app.post('/api/register', async (req, res) => {
         from: process.env.MAIL_FROM || process.env.MAIL_USER,
         to: email,
         subject: 'MoneyMind - Email Verification Code',
-        text: `Your verification code is: ${code}`,
         html: `
           <h2>MoneyMind - Email Verification</h2>
           <p>Your verification code is:</p>
-          <div style="font-size: 24px; font-weight: bold; letter-spacing: 4px;">
-            ${code}
-          </div>
+          <h1 style="letter-spacing: 6px;">${code}</h1>
           <p>This code will expire in 15 minutes.</p>
         `,
       });
@@ -147,9 +145,11 @@ app.post('/api/register', async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'A verification code has been sent to your email. Please check your inbox.',
+      message: 'A verification code has been sent to your email.',
       email,
+      expiresAt,
     });
+
   } catch (e) {
     console.error(e);
     return res
@@ -222,6 +222,60 @@ app.post('/api/register-verify', async (req, res) => {
       .json({ success: false, message: 'Server error. Please try again later.' });
   }
 });
+
+app.post('/api/register-resend', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+
+    if (!email) {
+      return res.json({
+        success: false,
+        message: "Email is required.",
+      });
+    }
+
+    const pending = pendingUsers.get(email);
+
+    if (!pending) {
+      return res.json({
+        success: false,
+        message: "No pending registration found. Please register again.",
+      });
+    }
+
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    pending.code = newCode;
+    pending.expiresAt = Date.now() + 10* 60 * 1000;
+    pendingUsers.set(email, pending);
+
+    await mailTransporter.sendMail({
+      from: process.env.MAIL_FROM || process.env.MAIL_USER,
+      to: email,
+      subject: "MoneyMind - Verification Code (Resent)",
+      html: `
+        <h2>MoneyMind Registration Verification</h2>
+        <p>Your new verification code is:</p>
+        <h1 style="letter-spacing: 6px;">${newCode}</h1>
+        <p>The code expires in 15 minutes.</p>
+      `,
+    });
+
+    return res.json({
+      success: true,
+      message: "A new verification code has been sent to your email.",
+      expiresAt: pending.expiresAt,
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.json({
+      success: false,
+      message: "Could not resend code. Please try again later.",
+    });
+  }
+});
+
 
 app.post('/api/login', async (req, res) => {
   try {

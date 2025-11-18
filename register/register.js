@@ -9,15 +9,11 @@ document.querySelector(".login-box").appendChild(loader);
 function showMessage(type, message) {
   errorBox.textContent = message;
   errorBox.style.display = "block";
-
-  errorBox.classList.remove("error");
-  errorBox.classList.remove("success");
+  errorBox.classList.remove("error", "success");
 
   if (type === "error") {
     errorBox.classList.add("error");
   }
-
-  errorBox.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function showError(message) {
@@ -29,8 +25,7 @@ function showError(message) {
 function clearError() {
   errorBox.style.display = "none";
   errorBox.textContent = "";
-  errorBox.classList.remove("error");
-  errorBox.classList.remove("success");
+  errorBox.classList.remove("error", "success");
 }
 
 registerBtn.addEventListener("click", async (e) => {
@@ -47,7 +42,7 @@ registerBtn.addEventListener("click", async (e) => {
   const password = document.getElementById("password").value.trim();
   const confirmPassword = document.getElementById("confirmPassword").value.trim();
   const dobInput = document.getElementById("dob").value.trim();
-  const dob = dobInput === "" ? null : dobInput;
+  const dob = dobInput || null;
   const phone = document.getElementById("phone").value.trim();
 
   if (!firstName || !lastName || !email || !password || !confirmPassword) {
@@ -68,7 +63,15 @@ registerBtn.addEventListener("click", async (e) => {
     const res = await fetch("http://localhost:3001/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstName, lastName, username, email, password, dob, phone }),
+      body: JSON.stringify({
+        firstName,
+        lastName,
+        username,
+        email,
+        password,
+        dob,
+        phone,
+      }),
     });
 
     const result = await res.json();
@@ -78,8 +81,12 @@ registerBtn.addEventListener("click", async (e) => {
     }
 
     loader.style.display = "none";
+
     localStorage.setItem("pendingEmail", email);
-    window.location.replace(`../register/emailverify/verify.html?email=${encodeURIComponent(email)}`);
+    localStorage.setItem("registerCodeExpiresAt", Date.now() + 10 * 60 * 1000);
+    localStorage.setItem("registerResendAvailableAt", Date.now() + 30 * 1000);
+
+    window.location.replace(`../register/emailverify/verify.html`);
 
   } catch (error) {
     console.error(error);
@@ -93,4 +100,3 @@ document.addEventListener("keydown", (e) => {
     registerBtn.click();
   }
 });
-

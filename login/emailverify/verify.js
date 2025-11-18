@@ -23,6 +23,11 @@ if (email) {
   resendBtn.disabled = true;
 }
 
+if (!localStorage.getItem("resendAvailableAt")) {
+  const firstCooldown = Date.now() + 30 * 1000;
+  localStorage.setItem("resendAvailableAt", String(firstCooldown));
+}
+
 function showError(msg) {
   errorBox.textContent = msg;
   errorBox.style.display = "block";
