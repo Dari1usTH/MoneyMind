@@ -100,3 +100,24 @@ document.addEventListener("keydown", (e) => {
     registerBtn.click();
   }
 });
+
+const dobInput = document.getElementById("dob");
+const dobDisplay = document.getElementById("dobDisplay");
+
+dobDisplay.addEventListener("click", () => {
+  dobInput.focus();
+  if (dobInput.showPicker) {
+    dobInput.showPicker();
+  }
+});
+
+dobInput.addEventListener("change", () => {
+  if (dobInput.value) {
+    const val = new Date(dobInput.value).toLocaleDateString("en-GB");
+    dobDisplay.textContent = val;
+    dobDisplay.parentElement.classList.add("filled");
+  } else {
+    dobDisplay.textContent = "Date of Birth (optional)";
+    dobDisplay.parentElement.classList.remove("filled");
+  }
+});

@@ -5,8 +5,6 @@ are you a human( o data cand intra pe login page )
 forgot password backend page
 birthdate css
 ---------------- bug ---------------------
-login resend code not good message
-
 
 ------------------ plan ---------------------
 

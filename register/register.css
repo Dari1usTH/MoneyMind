@@ -308,3 +308,46 @@ h1 span{ color:#00ffc6; }
     transform: rotate(360deg);
   }
 }
+
+.custom-date {
+  position: relative;
+}
+
+.custom-date input[type="date"] {
+  opacity: 0;
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.custom-date #dobDisplay {
+  display: flex;
+  align-items: center;   
+  margin: 10px 0;     
+  height: 48px;         
+  padding: 0 12px 0 40px;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.10);
+  color: #aaa;
+  font-size: 14px;
+  transition: .25s;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+
+.custom-date #dobDisplay:hover {
+  border-color: #00ffc6;
+  box-shadow: 0 0 10px rgba(0,255,198,0.3);
+}
+
+.custom-date.filled #dobDisplay {
+  color: #fff;
+}
+
+.custom-date input[type="date"]:focus ~ #dobDisplay {
+  border: 1px solid #00ffc6;
+  box-shadow: 0 0 10px rgba(0,255,198,0.3);
+}
