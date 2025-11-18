@@ -86,5 +86,3 @@ document.addEventListener("keydown", (e) => {
     loginBtn.click();
   }
 });
-
-

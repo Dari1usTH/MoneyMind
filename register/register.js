@@ -93,3 +93,4 @@ document.addEventListener("keydown", (e) => {
     registerBtn.click();
   }
 });
+

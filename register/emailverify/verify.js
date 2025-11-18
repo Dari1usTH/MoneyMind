@@ -83,4 +83,3 @@ document.addEventListener("keydown", (e) => {
     verifyBtn.click();
   }
 });
-
