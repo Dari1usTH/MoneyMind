@@ -72,7 +72,7 @@ h1 span{ color:#00ffc6; }
 .input-group{
   position:relative;
   width:100%;
-  margin:15px 0;
+  margin:7.5px 0;
 }
 
 .input-group i{
@@ -163,6 +163,7 @@ h1 span{ color:#00ffc6; }
   font-size:15px;
   cursor:pointer;
   transition:.3s;
+  margin-top: 12.5px;
 }
 
 .login-box button:hover{

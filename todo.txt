@@ -1,16 +1,10 @@
 chat intre useri
 
 -------------------to do --------------
-forgot password backend page
+forgot password page buttons
+forgot password rotund care se invarte
 ---------------- bug ---------------------
 
 ------------------ plan ---------------------
-
-----CAPCHA----
-
-----forgot password ---
-enter email : send email password reset link
-password reste link : passreset page/cokkie generated encryped
-after change pass : redirect login page ( show messge) + send email that password has been changed ( if not user contact imediately suppor @mail )
-
+forgot pass notify the BEST
 ------------------- what done ----------------
