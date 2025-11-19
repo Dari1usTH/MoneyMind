@@ -74,6 +74,12 @@ app.post('/api/verify-captcha', async (req, res) => {
   }
 });
 
+app.get('/api/recaptcha-site-key', (req, res) => {
+  return res.json({
+    siteKey: process.env.RECAPTCHA_SITE_KEY || '',
+  });
+});
+
 app.post('/api/register', async (req, res) => {
   try {
     const {
