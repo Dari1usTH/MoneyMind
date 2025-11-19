@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Security Check</title>
+  <link rel="stylesheet" href="captcha.css">
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  <script src="captcha.js"></script>
+</head>
+
+<body class="captcha-page">
+  <div class="captcha-container">
+    <h2>Security Verification</h2>
+    <p>Please verify that you are not a robot.</p>
+
+    <div
+      class="g-recaptcha"
+      data-sitekey=""
+      data-callback="captchaSolved">
+    </div>
+
+    <p id="captchaError" class="error-text"></p>
+  </div>
+
+  <script>
+    async function initKey() {
+      const res = await fetch("http://localhost:3001/api/recaptcha-site-key");
+      const data = await res.json();
+      document.querySelector(".g-recaptcha").setAttribute("data-sitekey", data.siteKey);
+
+      grecaptcha.render(document.querySelector(".g-recaptcha"), {
+        sitekey: data.siteKey,
+        callback: captchaSolved
+      });
+    }
+
+    initKey();
+  </script>
+</body>
+</html>
