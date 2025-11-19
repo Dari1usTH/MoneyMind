@@ -7,6 +7,7 @@ const cors = require('cors');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
+const fetch = require('node-fetch'); 
 
 const app = express();
 app.use(express.json());
@@ -33,7 +34,45 @@ const mailTransporter = nodemailer.createTransport({
 const pendingUsers = new Map();
 const pendingLoginUsers = new Map();
 
-app.get('/api/health', (_, res) => res.json({ ok: true }));
+app.post('/api/verify-captcha', async (req, res) => {
+  try {
+    const token = req.body && req.body.token;
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing captcha token.',
+      });
+    }
+
+    const params = new URLSearchParams();
+    params.append('secret', process.env.RECAPTCHA_SECRET);
+    params.append('response', token);
+
+    const googleRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+
+    const data = await googleRes.json();
+
+    if (data.success) {
+      return res.json({ success: true });
+    }
+
+    return res.status(400).json({
+      success: false,
+      message: 'Captcha invalid.',
+      errors: data['error-codes'] || [],
+    });
+  } catch (err) {
+    console.error('Captcha verify error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while verifying captcha.',
+    });
+  }
+});
 
 app.post('/api/register', async (req, res) => {
   try {
