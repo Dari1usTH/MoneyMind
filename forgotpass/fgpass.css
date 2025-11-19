@@ -61,9 +61,9 @@ h1 span{
 }
 
 .message.success{
-  background:rgba(0,255,198,0.08);
-  border-color:#00ffc6;
-  color:#b8fff0;
+  background-color: rgba(40, 167, 69, 0.15);  
+  border: 1px solid rgba(40, 167, 69, 1);     
+  color: #d4edda;
 }
 
 .message.error{
