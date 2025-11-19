@@ -1,16 +1,12 @@
 chat intre useri
 
 -------------------to do --------------
-are you a human( o data cand intra pe login page )
 forgot password backend page
 ---------------- bug ---------------------
 
 ------------------ plan ---------------------
 
 ----CAPCHA----
-dupa ce intrii pe sit orice redirect / intrare pe alta pagina -verifica o singura data si incarca pe localstorage ( same --)
-de fiecare data cand apasa pe login -verifica ( intampini probleme la introducere , contacteaza ne ) 
-
 
 ----forgot password ---
 enter email : send email password reset link

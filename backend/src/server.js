@@ -8,6 +8,7 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const fetch = require('node-fetch'); 
+const crypto = require("crypto");
 
 const app = express();
 app.use(express.json());
@@ -33,6 +34,7 @@ const mailTransporter = nodemailer.createTransport({
 
 const pendingUsers = new Map();
 const pendingLoginUsers = new Map();
+const passwordResetRequests = new Map(); 
 
 app.post('/api/verify-captcha', async (req, res) => {
   try {
@@ -526,6 +528,139 @@ app.post('/api/logout', (req, res) => {
 
   return res.json({ success: true });
 });
+
+app.post("/api/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body || {};
+
+    if (!email) {
+      return res.json({
+        success: false,
+        message: "Email is required.",
+      });
+    }
+
+    const conn = await pool.getConnection();
+    let rows;
+    try {
+      const [data] = await conn.execute(
+        "SELECT id, email FROM users WHERE email = ? LIMIT 1",
+        [email]
+      );
+      rows = data;
+    } finally {
+      conn.release();
+    }
+    if (!rows.length) {
+      return res.json({
+        success: true,
+        message: "If this email is associated with an account, a reset link has been sent.",
+      });
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = Date.now() + 10 * 60 * 1000; 
+
+    passwordResetRequests.set(email, { token, expiresAt });
+    const frontendBase = process.env.FRONTEND_URL || "http://localhost:5500";
+    const resetLink = `${frontendBase}/forgotpass/resetpass/rstpass.html?token=${token}&email=${encodeURIComponent(
+      email
+    )}`;
+
+    await mailTransporter.sendMail({
+      from: process.env.MAIL_FROM || process.env.MAIL_USER,
+      to: email,
+      subject: "MoneyMind - Reset Your Password",
+      html: `
+        <h2>Reset Your Password</h2>
+        <p>Click the link below to choose a new password:</p>
+        <a href="${resetLink}" style="font-size:16px;">Reset Password</a>
+        <p>This link will expire in 10 minutes.</p>
+      `,
+    });
+
+    return res.json({
+      success: true,
+      message: "If this email is associated with an account, a reset link has been sent.",
+    });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    return res.json({
+      success: false,
+      message: "Server error. Please try again later.",
+    });
+  }
+});
+
+app.post("/api/reset-password", async (req, res) => {
+  try {
+    const { email, token, newPassword, confirmPassword } = req.body || {};
+
+    if (!email || !token || !newPassword || !confirmPassword) {
+      return res.json({
+        success: false,
+        message: "All fields are required.",
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.json({
+        success: false,
+        message: "Passwords do not match.",
+      });
+    }
+
+    const data = passwordResetRequests.get(email);
+
+    if (!data) {
+      return res.json({
+        success: false,
+        message: "Invalid or expired reset request.",
+      });
+    }
+
+    if (data.token !== token) {
+      return res.json({
+        success: false,
+        message: "Invalid reset token.",
+      });
+    }
+
+    if (Date.now() > data.expiresAt) {
+      passwordResetRequests.delete(email);
+      return res.json({
+        success: false,
+        message: "Reset link has expired.",
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.execute(
+        "UPDATE users SET password = ? WHERE email = ? LIMIT 1",
+        [passwordHash, email]
+      );
+    } finally {
+      conn.release();
+    }
+
+    passwordResetRequests.delete(email);
+
+    return res.json({
+      success: true,
+      message: "Your password has been reset successfully.",
+    });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    return res.json({
+      success: false,
+      message: "Server error. Please try again later.",
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
 

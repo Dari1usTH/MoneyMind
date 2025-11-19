@@ -14,6 +14,13 @@ document.addEventListener("DOMContentLoaded", () => {
     successBox.style.display = "block";
     localStorage.removeItem("accountCreated");
   }
+
+  const passwordResetSuccess = localStorage.getItem("passwordResetSuccess");
+  if (passwordResetSuccess) {
+    successBox.textContent = "Your password has been changed successfully. You can now log in.";
+    successBox.style.display = "block";
+    localStorage.removeItem("passwordResetSuccess");
+  }
 });
 
 function showError(msg) {
@@ -34,12 +41,12 @@ loginBtn.addEventListener("click", async (e) => {
   e.preventDefault();
   clearError();
 
-  loginBtn.disabled = true;      
+  loginBtn.disabled = true;
   loader.style.display = "block";
 
   const identifier = document.getElementById("username").value.trim();
-  const password   = document.getElementById("password").value.trim();
-  const remember   = document.getElementById("remember").checked;
+  const password = document.getElementById("password").value.trim();
+  const remember = document.getElementById("remember").checked;
 
   if (!identifier || !password) {
     return showError("Please fill in all fields!");
@@ -58,7 +65,7 @@ loginBtn.addEventListener("click", async (e) => {
       return showError(result.message);
     }
 
-    loader.style.display = "none";  
+    loader.style.display = "none";
 
     localStorage.setItem("pendingLoginEmail", result.email);
     localStorage.setItem("loginRemember", remember ? "1" : "0");
@@ -86,4 +93,3 @@ document.addEventListener("keydown", (e) => {
     loginBtn.click();
   }
 });
-
