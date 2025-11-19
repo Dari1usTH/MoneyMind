@@ -1,13 +1,16 @@
-const API_BASE = "http://localhost:3001"; 
+const API_BASE = "http://localhost:3001";
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get("token");
 const email = urlParams.get("email");
-
-const newPass = document.getElementById("newPassword");
-const confirmPass = document.getElementById("confirmPassword");
-const resetBtn = document.getElementById("resetBtn");
-const messageBox = document.getElementById("message");
-const backBtn = document.getElementById("backBtn");
+const newPass      = document.getElementById("newPassword");
+const confirmPass  = document.getElementById("confirmPassword");
+const resetBtn     = document.getElementById("resetBtn");
+const messageBox   = document.getElementById("message");
+const backBtn      = document.getElementById("backBtn");
+const loader = document.createElement("div");
+loader.classList.add("loader");
+loader.style.display = "none";
+document.querySelector(".reset-box").appendChild(loader);
 
 function showMessage(text, type = "success") {
   if (!messageBox) return;
@@ -16,9 +19,29 @@ function showMessage(text, type = "success") {
   messageBox.classList.add(type);
 }
 
+function setLoading(isLoading) {
+  if (!resetBtn) return;
+  if (isLoading) {
+    resetBtn.disabled = true;
+    loader.style.display = "block";
+  } else {
+    resetBtn.disabled = false;
+    loader.style.display = "none";
+  }
+}
+
 if (resetBtn) {
-  resetBtn.addEventListener("click", async () => {
+  resetBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+
+    if (messageBox) {
+      messageBox.classList.add("hidden");
+    }
+
+    setLoading(true);
+
     if (!token || !email) {
+      setLoading(false);
       showMessage("Invalid reset link.", "error");
       return;
     }
@@ -27,11 +50,13 @@ if (resetBtn) {
     const confirmPassword = confirmPass.value.trim();
 
     if (!newPassword || !confirmPassword) {
+      setLoading(false);
       showMessage("Please fill in both password fields.", "error");
       return;
     }
 
     if (newPassword !== confirmPassword) {
+      setLoading(false);
       showMessage("Passwords do not match!", "error");
       return;
     }
@@ -49,7 +74,11 @@ if (resetBtn) {
       });
 
       const data = await res.json();
-      showMessage(data.message || "Something went wrong.", data.success ? "success" : "error");
+      setLoading(false);
+      showMessage(
+        data.message || "Something went wrong.",
+        data.success ? "success" : "error"
+      );
 
       if (data.success) {
         localStorage.setItem("passwordResetSuccess", "1");
@@ -57,6 +86,7 @@ if (resetBtn) {
       }
     } catch (err) {
       console.error("Reset password error:", err);
+      setLoading(false);
       showMessage("Could not contact the server. Please try again.", "error");
     }
   });
@@ -67,3 +97,12 @@ if (backBtn) {
     window.location.href = "../../login/login.html";
   });
 }
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === "NumpadEnter") {
+    e.preventDefault();
+    if (resetBtn && !resetBtn.disabled) {
+      resetBtn.click();
+    }
+  }
+});

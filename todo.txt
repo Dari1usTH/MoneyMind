@@ -1,10 +1,12 @@
 chat intre useri
 
 -------------------to do --------------
-forgot password page buttons
-forgot password rotund care se invarte
----------------- bug ---------------------
 
+---------------- bug ---------------------
+reset button apare scris
 ------------------ plan ---------------------
 forgot pass notify the BEST
 ------------------- what done ----------------
+forgot password page buttons
+forgot password rotund care se invarte
+forgot password enter exec click

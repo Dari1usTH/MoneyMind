@@ -24,9 +24,9 @@ body.captcha-page {
 }
 
 .captcha-container h2 {
-  color: #00ffc6;
-  margin-bottom: 10px;
   font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 10px;
 }
 
 .captcha-container p {
@@ -38,6 +38,10 @@ body.captcha-page {
 .error-text {
   margin-top: 15px;
   color: #ff4d4d;
+}
+
+.captcha-container h2 span {
+  color: #00ffc6;
 }
 
 @keyframes fadeInUp {
