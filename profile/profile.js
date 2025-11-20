@@ -238,3 +238,4 @@ async function handleCreateAccount(e) {
     alert("Server error while creating account.");
   }
 }
+

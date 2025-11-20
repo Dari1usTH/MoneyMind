@@ -1,995 +1,240 @@
-const path = require('path');
-require('dotenv').config({
-  path: path.join('D:', 'Proiecte', '.env')
-});
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const cookieParser = require('cookie-parser');
-const mysql = require('mysql2/promise');
-const bcrypt = require('bcrypt');
-const nodemailer = require('nodemailer');
-const fetch = require('node-fetch');
-const crypto = require('crypto');
+const API_BASE = "http://localhost:3001";
+const LOGIN_PATH = "../login/login.html";
 
-const app = express();
+let accounts = [];
+let selectedAccountId = null;
 
-app.use(helmet());
-app.use(express.json());
-app.use(cookieParser());
-
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-].filter(Boolean);
-
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    // accept all port
-    const isLocalhost =
-      /^https?:\/\/localhost(?::\d+)?$/.test(origin) ||
-      /^https?:\/\/127\.0\.0\.1(?::\d+)?$/.test(origin);
-
-    if (isLocalhost || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    console.warn('CORS blocked origin:', origin);
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-}));
-
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 10, 
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many attempts. Please try again later.' },
+document.addEventListener("DOMContentLoaded", () => {
+  initHeaderDate();
+  setupModalHandlers();
+  loadProfile();
+  loadAccounts();
 });
 
-const passwordResetLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many reset attempts. Please try again later.' },
-});
+function initHeaderDate() {
+  const dateEl = document.getElementById("currentDate");
+  if (!dateEl) return;
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS || '',
-  database: process.env.DB_NAME,
-  connectionLimit: 10,
-});
+  const now = new Date();
+  dateEl.textContent = now.toLocaleDateString("en-US", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
 
-const mailTransporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST || 'smtp.gmail.com',
-  port: Number(process.env.MAIL_PORT) || 587,
-  secure: false,
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
+function setupModalHandlers() {
+  const modalCloseBtn = document.getElementById("modalCloseBtn");
+  const modalBackdrop = document.getElementById("modalBackdrop");
+  const newAccountForm = document.getElementById("newAccountForm");
+  const openNewAccountBtn = document.getElementById("openNewAccountBtn");
 
-const pendingUsers = new Map();
-const pendingLoginUsers = new Map();
-const passwordResetRequests = new Map(); 
-
-async function verifyCaptchaToken(token) {
-  if (!process.env.RECAPTCHA_SECRET) {
-    if (process.env.NODE_ENV === 'production') {
-      console.error('[reCAPTCHA] RECAPTCHA_SECRET missing in production!');
-      return false;
-    }
-    console.warn('[reCAPTCHA] RECAPTCHA_SECRET missing – skipping in dev.');
-    return true;
+  if (modalCloseBtn) {
+    modalCloseBtn.addEventListener("click", () => toggleModal(false));
   }
-
-  if (!token) {
-    console.warn('[reCAPTCHA] Missing token.');
-    return false;
+  if (modalBackdrop) {
+    modalBackdrop.addEventListener("click", () => toggleModal(false));
   }
+  if (newAccountForm) {
+    newAccountForm.addEventListener("submit", handleCreateAccount);
+  }
+  if (openNewAccountBtn) {
+    openNewAccountBtn.addEventListener("click", () => toggleModal(true));
+  }
+}
 
+function toggleModal(show) {
+  const modal = document.getElementById("newAccountModal");
+  const backdrop = document.getElementById("modalBackdrop");
+  if (!modal || !backdrop) return;
+
+  if (show) {
+    modal.classList.remove("hidden");
+    backdrop.classList.remove("hidden");
+  } else {
+    modal.classList.add("hidden");
+    backdrop.classList.add("hidden");
+  }
+}
+
+async function loadProfile() {
   try {
-    const params = new URLSearchParams();
-    params.append('secret', process.env.RECAPTCHA_SECRET);
-    params.append('response', token);
-
-    const googleRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
+    const res = await fetch(`${API_BASE}/api/me`, {
+      credentials: "include",
     });
 
-    const data = await googleRes.json();
+    if (res.status === 401) {
+      window.location.href = LOGIN_PATH;
+      return;
+    }
 
+    const data = await res.json();
+    if (!data.success || !data.user) {
+      console.error("Failed to load profile:", data.message);
+      return;
+    }
+
+    populateProfile(data.user);
+  } catch (err) {
+    console.error("Error loading profile:", err);
+  }
+}
+
+function populateProfile(user) {
+  document.getElementById("firstName").textContent = user.first_name || "";
+  document.getElementById("lastName").textContent = user.last_name || "";
+  document.getElementById("username").textContent = user.username || "";
+  document.getElementById("email").textContent = user.email || "";
+  document.getElementById("phone").textContent = user.phone_number || "";
+
+  document.getElementById("birthDate").textContent = user.birth_date
+    ? new Date(user.birth_date).toLocaleDateString()
+    : "-";
+
+  document.getElementById("createdAt").textContent = user.created_at
+    ? new Date(user.created_at).toLocaleDateString()
+    : "-";
+}
+
+async function loadAccounts() {
+  try {
+    const res = await fetch(`${API_BASE}/api/accounts`, {
+      credentials: "include", 
+    });
+
+    if (res.status === 401) {
+      window.location.href = LOGIN_PATH;
+      return;
+    }
+
+    const data = await res.json();
     if (!data.success) {
-      console.warn('[reCAPTCHA] Invalid verification response:', data);
+      console.error("Failed to load accounts:", data.message);
+      return;
     }
 
-    return !!data.success;
+    accounts = data.accounts || [];
+
+    if (accounts.length > 0) {
+      const defaultAcc = accounts.find((a) => a.is_default === 1);
+      selectedAccountId = (defaultAcc || accounts[0]).id;
+    } else {
+      selectedAccountId = null;
+    }
+
+    renderAccounts();
+    renderSelectedAccount();
   } catch (err) {
-    console.error('[reCAPTCHA] Error while verifying token:', err);
-    return false;
+    console.error("Error loading accounts:", err);
   }
 }
 
-async function authMiddleware(req, res, next) {
-  try {
-    const userId = req.cookies.session;
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authenticated.',
-      });
+function renderAccounts() {
+  const container = document.getElementById("accountsList");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  accounts.forEach((account) => {
+    const card = document.createElement("div");
+    card.className = "account-card";
+    if (account.id === selectedAccountId) {
+      card.classList.add("active");
     }
 
-    const conn = await pool.getConnection();
-    let rows;
-    try {
-      const [data] = await conn.execute(
-        `SELECT id, first_name, last_name, username, email, birth_date, phone_number, created_at
-         FROM users
-         WHERE id = ? LIMIT 1`,
-        [userId]
-      );
-      rows = data;
-    } finally {
-      conn.release();
-    }
+    const balance = Number(account.balance || 0);
 
-    if (!rows.length) {
-      res.clearCookie('session');
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid session.',
-      });
-    }
+    card.innerHTML = `
+      <div class="account-name">${account.account_name}</div>
+      <div class="account-meta">${account.account_type.toUpperCase()} • ${account.currency}</div>
+      <div class="account-balance">${balance.toFixed(2)} ${account.currency}</div>
+      ${account.is_default ? '<div class="account-meta">Default</div>' : ""}
+    `;
 
-    req.user = rows[0]; 
-    next();
-  } catch (err) {
-    console.error('authMiddleware error:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error.',
+    card.addEventListener("click", () => {
+      selectedAccountId = account.id;
+      renderAccounts();
+      renderSelectedAccount();
     });
-  }
+
+    container.appendChild(card);
+  });
+
+  const addCard = document.createElement("div");
+  addCard.className = "account-card add-card";
+  addCard.innerHTML = `
+    <div class="plus">+</div>
+    <div>Create new account</div>
+  `;
+  addCard.addEventListener("click", () => toggleModal(true));
+  container.appendChild(addCard);
 }
 
-app.get('/api/me', authMiddleware, async (req, res) => {
-  return res.json({
-    success: true,
-    user: req.user,
-  });
-});
+function renderSelectedAccount() {
+  const acc = accounts.find((a) => a.id === selectedAccountId);
 
-app.get('/api/recaptcha-site-key', (req, res) => {
-  return res.json({
-    siteKey: process.env.RECAPTCHA_SITE_KEY || '',
-  });
-});
-
-app.post('/api/register', authLimiter, async (req, res) => {
-  try {
-    const {
-      firstName,
-      lastName,
-      username = '',
-      email,
-      password,
-      dob = null,
-      phone = null,
-    } = req.body || {};
-
-    if (!firstName || !lastName || !email || !password) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Please fill in all required fields!' });
-    }
-
-    if ([username, firstName, lastName].some((v) => v?.toLowerCase().includes('admin'))) {
-      return res.status(400).json({
-        success: false,
-        message: "You cannot use 'admin' in your first name, last name, or username!",
-      });
-    }
-    
-    const finalUsername = (username || firstName).trim();
-    const conn = await pool.getConnection();
-    try {
-      const [dupRows] = await conn.execute(
-        'SELECT id, username, email, phone_number FROM users WHERE username = ? OR email = ? OR phone_number = ? LIMIT 1',
-        [finalUsername || null, email, phone || null]
-      );
-
-      if (dupRows.length) {
-        return res.json({
-          success: false,
-          message: 'An account already exists with these details. If you already have an account, please log in.',
-        });
-      }
-
-    } finally {
-      conn.release();
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 8 characters.',
-      });
-    }
-
-    if (email.length > 254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please enter a valid email address.',
-      });
-    }
-
-    if (firstName.length > 50 || lastName.length > 50 || (username && username.length > 50)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Name/username too long.',
-      });
-    }
-
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const expiresAt = Date.now() + 10 * 60 * 1000; 
-
-    pendingUsers.set(email, {
-      firstName,
-      lastName,
-      username: finalUsername,
-      email,
-      passwordHash,
-      dob: dob || null,
-      phone: phone || null,
-      code,
-      expiresAt,
-      attempts: 0,
-    });
-
-    try {
-      await mailTransporter.sendMail({
-        from: process.env.MAIL_FROM || process.env.MAIL_USER,
-        to: email,
-        subject: 'MoneyMind - Email Verification Code',
-        html: `
-          <h2>MoneyMind - Email Verification</h2>
-          <p>Your verification code is:</p>
-          <h1 style="letter-spacing: 6px;">${code}</h1>
-          <p>This code will expire in 10 minutes.</p>
-        `,
-      });
-    } catch (mailErr) {
-      console.error('Error sending verification email:', mailErr);
-      pendingUsers.delete(email);
-      return res.status(500).json({
-        success: false,
-        message: 'Could not send verification email. Please try again later.',
-      });
-    }
-
-    return res.json({
-      success: true,
-      message: 'A verification code has been sent to your email.',
-      email,
-      expiresAt,
-    });
-
-  } catch (e) {
-    console.error(e);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Server error. Please try again later.' });
+  if (!acc) {
+    document.getElementById("detailName").textContent = "-";
+    document.getElementById("detailType").textContent = "-";
+    document.getElementById("detailCurrency").textContent = "-";
+    document.getElementById("detailBalance").textContent = "-";
+    document.getElementById("detailDefault").textContent = "-";
+    document.getElementById("detailCreatedAt").textContent = "-";
+    return;
   }
-});
 
-app.post('/api/register-verify',authLimiter, async (req, res) => {
+  const balance = Number(acc.balance || 0);
+
+  document.getElementById("detailName").textContent = acc.account_name;
+  document.getElementById("detailType").textContent = acc.account_type;
+  document.getElementById("detailCurrency").textContent = acc.currency;
+  document.getElementById("detailBalance").textContent =
+    balance.toFixed(2) + " " + acc.currency;
+  document.getElementById("detailDefault").textContent = acc.is_default ? "Yes" : "No";
+  document.getElementById("detailCreatedAt").textContent = acc.created_at
+    ? new Date(acc.created_at).toLocaleString()
+    : "-";
+}
+
+async function handleCreateAccount(e) {
+  e.preventDefault();
+  const form = e.target;
+  const formData = new FormData(form);
+
+  const payload = {
+    accountName: formData.get("accountName")?.toString().trim(),
+    accountType: formData.get("accountType"),
+    currency: formData.get("currency"),
+    initialBalance: formData.get("initialBalance") || 0,
+    setAsDefault: formData.get("setAsDefault") === "on",
+  };
+
   try {
-    const { email, code } = req.body || {};
-
-    if (!email || !code) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Email and verification code are required.' });
-    }
-
-    const pending = pendingUsers.get(email);
-    if (!pending) {
-      return res.json({
-        success: false,
-        message: 'No pending registration found for this email. Please register again.',
-      });
-    }
-
-    if (Date.now() > pending.expiresAt) {
-      pendingUsers.delete(email);
-      return res.json({
-        success: false,
-        message: 'This verification code has expired. Please register again.',
-      });
-    }
-
-    if (pending.attempts >= 5) {
-      pendingUsers.delete(email);
-      return res.json({
-        success: false,
-        message: 'Too many invalid attempts. Please register again.',
-      });
-    }
-
-    if (pending.code !== code) {
-      pending.attempts += 1;
-      pendingUsers.set(email, pending);
-      return res.json({
-        success: false,
-        message: 'Invalid verification code. Please try again.',
-      });
-    }
-
-    const conn = await pool.getConnection();
-    try {
-      await conn.execute(
-        'INSERT INTO users (first_name, last_name, username, email, password, birth_date, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [
-          pending.firstName,
-          pending.lastName,
-          pending.username,
-          pending.email,
-          pending.passwordHash,
-          pending.dob,
-          pending.phone,
-        ]
-      );
-    } finally {
-      conn.release();
-    }
-
-    pendingUsers.delete(email);
-
-    return res.json({
-      success: true,
-      message: 'Your account has been created successfully.',
-    });
-  } catch (e) {
-    console.error(e);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Server error. Please try again later.' });
-  }
-});
-
-app.post('/api/register-resend',authLimiter, async (req, res) => {
-  try {
-    const { email } = req.body || {};
-
-    if (!email) {
-      return res.json({
-        success: false,
-        message: "Email is required.",
-      });
-    }
-
-    const pending = pendingUsers.get(email);
-
-    if (!pending) {
-      return res.json({
-        success: false,
-        message: "No pending registration found. Please register again.",
-      });
-    }
-
-    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    pending.code = newCode;
-    pending.expiresAt = Date.now() + 10* 60 * 1000;
-    pendingUsers.set(email, pending);
-
-    await mailTransporter.sendMail({
-      from: process.env.MAIL_FROM || process.env.MAIL_USER,
-      to: email,
-      subject: "MoneyMind - Verification Code (Resent)",
-      html: `
-        <h2>MoneyMind Registration Verification</h2>
-        <p>Your new verification code is:</p>
-        <h1 style="letter-spacing: 6px;">${newCode}</h1>
-        <p>The code expires in 10 minutes.</p>
-      `,
-    });
-
-    return res.json({
-      success: true,
-      message: "A new verification code has been sent to your email.",
-      expiresAt: pending.expiresAt,
-    });
-
-  } catch (err) {
-    console.error(err);
-    return res.json({
-      success: false,
-      message: "Could not resend code. Please try again later.",
-    });
-  }
-});
-
-app.post('/api/login',authLimiter, async (req, res) => {
-  try {
-    const { identifier, password } = req.body || {};
-
-    if (!identifier || !password) {
-      return res.json({ success: false, message: "Please fill in all fields!" });
-    }
-
-    const conn = await pool.getConnection();
-    let rows;
-    try {
-      rows = (
-        await conn.execute(
-          'SELECT id, email, username, first_name, password, phone_number FROM users WHERE email = ? OR username = ? OR phone_number = ? LIMIT 1',
-          [identifier, identifier, identifier]
-        )
-      )[0];
-    } finally {
-      conn.release();
-    }
-
-    if (!rows.length) {
-      return res.json({
-        success: false,
-        message: "Invalid credentials.",
-      });
-    }
-
-    const user = rows[0];
-
-    const passMatch = await bcrypt.compare(password, user.password);
-    if (!passMatch) {
-      return res.json({
-        success: false,
-        message: "Invalid credentials.",
-      });
-    }
-
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000;
-
-    pendingLoginUsers.set(user.email, {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      first_name: user.first_name,
-      code,
-      expiresAt,
-      attempts: 0,
-    });
-
-    await mailTransporter.sendMail({
-      from: process.env.MAIL_FROM || process.env.MAIL_USER,
-      to: user.email,
-      subject: "MoneyMind - Login Verification Code",
-      html: `
-        <h2>MoneyMind Login Verification</h2>
-        <p>Your login verification code is:</p>
-        <h1 style="letter-spacing:6px">${code}</h1>
-        <p>The code expires in 10 minutes.</p>
-      `,
-    });
-
-    return res.json({
-      success: true,
-      message: "A login verification code has been sent to your email.",
-      email: user.email,
-      expiresAt,
-    });
-  } catch (err) {
-    console.error(err);
-    return res.json({
-      success: false,
-      message: "Server error. Please try again later.",
-    });
-  }
-});
-
-app.post('/api/login-verify',authLimiter, async (req, res) => {
-  try {
-    const { email, code, remember } = req.body || {};
-
-    if (!email || !code) {
-      return res.json({
-        success: false,
-        message: "Email and code are required.",
-      });
-    }
-
-    const pending = pendingLoginUsers.get(email);
-    if (!pending) {
-      return res.json({
-        success: false,
-        message: "No pending login found. Please try again.",
-      });
-    }
-
-    if (Date.now() > pending.expiresAt) {
-      pendingLoginUsers.delete(email);
-      return res.json({
-        success: false,
-        message: "Verification code expired. Please login again.",
-      });
-    }
-
-    if (pending.attempts >= 5) {
-      pendingLoginUsers.delete(email);
-      return res.json({
-        success: false,
-        message: "Too many invalid attempts. Please login again.",
-      });
-    }
-
-    if (pending.code !== code) {
-      pending.attempts += 1;
-      pendingLoginUsers.set(email, pending);
-      return res.json({
-        success: false,
-        message: "Invalid code. Please try again.",
-      });
-    }
-
-    pendingLoginUsers.delete(email);
-
-    const cookieOptions = {
-      httpOnly: true,
-      sameSite: 'lax', 
-      secure: process.env.NODE_ENV === 'production',
-    };
-
-    if (remember) {
-      cookieOptions.maxAge = 30 * 24 * 60 * 60 * 1000;
-    }
-
-    res.cookie("session", pending.id, cookieOptions);
-
-    return res.json({
-      success: true,
-      message: "Login successful!",
-      username: pending.username,
-      first_name: pending.first_name,
-    });
-
-  } catch (err) {
-    console.error(err);
-    return res.json({
-      success: false,
-      message: "Server error.",
-    });
-  }
-});
-
-app.post('/api/login-resend',authLimiter, async (req, res) => {
-  try {
-    const { email } = req.body || {};
-
-    if (!email) {
-      return res.json({
-        success: false,
-        message: "Email is required.",
-      });
-    }
-
-    const pending = pendingLoginUsers.get(email);
-    if (!pending) {
-      return res.json({
-        success: false,
-        message: "No pending login found. Please try logging in again.",
-      });
-    }
-
-    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    pending.code = newCode;
-    pending.expiresAt = Date.now() + 10 * 60 * 1000;
-    pendingLoginUsers.set(email, pending);
-
-    await mailTransporter.sendMail({
-      from: process.env.MAIL_FROM || process.env.MAIL_USER,
-      to: email,
-      subject: "MoneyMind - Login Verification Code (Resent)",
-      html: `
-        <h2>MoneyMind Login Verification</h2>
-        <p>Your new login verification code is:</p>
-        <h1 style="letter-spacing:6px">${newCode}</h1>
-        <p>The code expires in 10 minutes.</p>
-      `,
-    });
-
-    return res.json({
-      success: true,
-      message: "A new verification code has been sent to your email.",
-      expiresAt: pending.expiresAt,
-    });
-
-  } catch (err) {
-    console.error(err);
-    return res.json({
-      success: false,
-      message: "Could not resend code. Please try again later.",
-    });
-  }
-});
-
-app.post('/api/logout', (req, res) => {
-  res.clearCookie('session', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  });
-
-  return res.json({ success: true });
-});
-
-app.post("/api/forgot-password",passwordResetLimiter, async (req, res) => {
-  try {
-    const { email } = req.body || {};
-
-    if (!email) {
-      return res.json({
-        success: false,
-        message: "Email is required.",
-      });
-    }
-
-    const conn = await pool.getConnection();
-    let rows;
-    try {
-      const [data] = await conn.execute(
-        "SELECT id, email FROM users WHERE email = ? LIMIT 1",
-        [email]
-      );
-      rows = data;
-    } finally {
-      conn.release();
-    }
-    if (!rows.length) {
-      return res.json({
-        success: true,
-        message: "If this email is associated with an account, a reset link has been sent.",
-      });
-    }
-
-    const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = Date.now() + 10 * 60 * 1000; 
-
-    passwordResetRequests.set(email, { token, expiresAt });
-    const frontendBase = process.env.FRONTEND_URL || "http://localhost:5500";
-    const resetLink = `${frontendBase}/forgotpass/resetpass/rstpass.html?token=${token}&email=${encodeURIComponent(
-      email
-    )}`;
-
-    await mailTransporter.sendMail({
-      from: process.env.MAIL_FROM || process.env.MAIL_USER,
-      to: email,
-      subject: "MoneyMind - Reset Your Password",
-      html: `
-        <h2>Reset Your Password</h2>
-        <p>Click the link below to choose a new password:</p>
-        <a href="${resetLink}" style="font-size:16px;">Reset Password</a>
-        <p>This link will expire in 10 minutes.</p>
-      `,
-    });
-
-    return res.json({
-      success: true,
-      message: "If this email is associated with an account, a reset link has been sent.",
-    });
-  } catch (err) {
-    console.error("Forgot password error:", err);
-    return res.json({
-      success: false,
-      message: "Server error. Please try again later.",
-    });
-  }
-});
-
-app.post("/api/reset-password",passwordResetLimiter, async (req, res) => {
-  try {
-    const { email, token, newPassword, confirmPassword } = req.body || {};
-
-    if (!email || !token || !newPassword || !confirmPassword) {
-      return res.json({
-        success: false,
-        message: "All fields are required.",
-      });
-    }
-
-    if (newPassword !== confirmPassword) {
-      return res.json({
-        success: false,
-        message: "Passwords do not match.",
-      });
-    }
-    
-    if (newPassword.length < 8) {
-      return res.json({
-        success: false,
-        message: "Password must be at least 8 characters.",
-      });
-    }
-
-    if (newPassword.length < 8) {
-      return res.json({
-        success: false,
-        message: "Password must be at least 8 characters.",
-      });
-    }
-
-    const data = passwordResetRequests.get(email);
-
-    if (!data) {
-      return res.json({
-        success: false,
-        message: "Invalid or expired reset request.",
-      });
-    }
-
-    if (data.token !== token) {
-      return res.json({
-        success: false,
-        message: "Invalid reset token.",
-      });
-    }
-
-    if (Date.now() > data.expiresAt) {
-      passwordResetRequests.delete(email);
-      return res.json({
-        success: false,
-        message: "Reset link has expired.",
-      });
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword, 10);
-
-    const conn = await pool.getConnection();
-    try {
-      await conn.execute(
-        "UPDATE users SET password = ? WHERE email = ? LIMIT 1",
-        [passwordHash, email]
-      );
-    } finally {
-      conn.release();
-    }
-
-    passwordResetRequests.delete(email);
-
-    return res.json({
-      success: true,
-      message: "Your password has been reset successfully.",
-    });
-  } catch (err) {
-    console.error("Reset password error:", err);
-    return res.json({
-      success: false,
-      message: "Server error. Please try again later.",
-    });
-  }
-});
-
-app.post('/api/verify-captcha', async (req, res) => {
-  try {
-    const { token } = req.body || {};
-
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing captcha token.',
-      });
-    }
-
-    const ok = await verifyCaptchaToken(token);
-
-    if (!ok) {
-      return res.status(400).json({
-        success: false,
-        message: 'Captcha invalid.',
-      });
-    }
-
-    return res.json({ success: true });
-  } catch (err) {
-    console.error('Captcha verify error:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error while verifying captcha.',
-    });
-  }
-});
-
-app.get('/api/news', async (req, res) => {
-  try {
-    const category = (req.query.category || 'forex').toLowerCase();
-    const apiKey = process.env.NEWS_API_KEY; 
-
-    if (!apiKey) {
-      return res.status(500).json({
-        success: false,
-        message: 'News API is not configured on the server.',
-      });
-    }
-
-    let query = 'forex OR "currency markets" OR "interest rates" OR fed';
-    if (category === 'crypto') {
-      query = 'crypto OR bitcoin OR ethereum OR "digital assets"';
-    } else if (category === 'stocks') {
-      query = '"stock market" OR equities OR "earnings" OR "S&P 500"';
-    }
-
-    const url = new URL('https://newsapi.org/v2/everything');
-    url.searchParams.set('q', query);
-    url.searchParams.set('language', 'en');
-    url.searchParams.set('pageSize', '10');
-    url.searchParams.set('sortBy', 'publishedAt');
-
-    const apiRes = await fetch(url.toString(), {
+    const res = await fetch(`${API_BASE}/api/accounts`, {
+      method: "POST",
       headers: {
-        'X-Api-Key': apiKey,
+        "Content-Type": "application/json",
       },
+      credentials: "include",
+      body: JSON.stringify(payload),
     });
 
-    if (!apiRes.ok) {
-      console.error('News API error status:', apiRes.status);
-      return res.status(502).json({
-        success: false,
-        message: 'Upstream news service error.',
-      });
+    const data = await res.json();
+    if (!data.success) {
+      alert(data.message || "Failed to create account.");
+      return;
     }
 
-    const raw = await apiRes.json();
-    const rawArticles = raw.articles || [];
+    accounts.push(data.account);
+    selectedAccountId = data.account.id;
 
-    const articles = rawArticles.slice(0, 10).map((item, idx) => ({
-      id: item.url || `mm-${Date.now()}-${idx}`,
-      title: String(item.title || '').slice(0, 200),
-      summary: item.description
-        ? String(item.description).slice(0, 400)
-        : null,
-      source: item.source && item.source.name ? item.source.name : null,
-      publishedAt: item.publishedAt || null,
-      url: item.url || null,
-    }));
-
-    return res.json({ success: true, articles });
+    renderAccounts();
+    renderSelectedAccount();
+    toggleModal(false);
+    form.reset();
   } catch (err) {
-    console.error('News endpoint error:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error while loading news.',
-    });
+    console.error("Error creating account:", err);
+    alert("Server error while creating account.");
   }
-});
-
-app.get('/api/accounts', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const conn = await pool.getConnection();
-    let rows;
-    try {
-      const [data] = await conn.execute(
-        `SELECT id, account_name, account_type, currency, balance, is_default, created_at, updated_at
-         FROM accounts
-         WHERE user_id = ?
-         ORDER BY is_default DESC, created_at ASC`,
-        [userId]
-      );
-      rows = data;
-    } finally {
-      conn.release();
-    }
-
-    return res.json({
-      success: true,
-      accounts: rows,
-    });
-  } catch (err) {
-    console.error('GET /api/accounts error:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Could not load accounts.',
-    });
-  }
-});
-
-app.post('/api/accounts', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const {
-      accountName,
-      accountType = 'other',
-      currency,
-      initialBalance = 0,
-      setAsDefault = false,
-    } = req.body || {};
-
-    if (!accountName || !currency) {
-      return res.status(400).json({
-        success: false,
-        message: 'Account name and currency are required.',
-      });
-    }
-
-    const allowedCurrencies = ['USD', 'EUR', 'RON', 'GBP', 'CHF'];
-    if (!allowedCurrencies.includes(currency)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Unsupported currency.',
-      });
-    }
-
-    const allowedTypes = ['broker', 'bank', 'crypto', 'cash', 'other'];
-    const safeAccountType = allowedTypes.includes(accountType) ? accountType : 'other';
-
-    let balance = Number(initialBalance);
-    if (Number.isNaN(balance) || balance < 0) {
-      balance = 0;
-    }
-
-    const conn = await pool.getConnection();
-    try {
-      await conn.beginTransaction();
-
-      if (setAsDefault) {
-        await conn.execute(
-          'UPDATE accounts SET is_default = 0 WHERE user_id = ?',
-          [userId]
-        );
-      }
-
-      const [result] = await conn.execute(
-        `INSERT INTO accounts (user_id, account_name, account_type, currency, balance, is_default)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [userId, accountName, safeAccountType, currency, balance, setAsDefault ? 1 : 0]
-      );
-
-      const [rows] = await conn.execute(
-        `SELECT id, account_name, account_type, currency, balance, is_default, created_at, updated_at
-         FROM accounts
-         WHERE id = ? AND user_id = ?
-         LIMIT 1`,
-        [result.insertId, userId]
-      );
-
-      await conn.commit();
-
-      return res.status(201).json({
-        success: true,
-        account: rows[0],
-      });
-    } catch (err) {
-      await conn.rollback();
-      throw err;
-    } finally {
-      conn.release();
-    }
-  } catch (err) {
-    console.error('POST /api/accounts error:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Could not create account.',
-    });
-  }
-});
-
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
+}
