@@ -53,10 +53,16 @@ loginBtn.addEventListener("click", async (e) => {
   }
 
   try {
+    const captchaToken = await getCaptchaToken();
+
+    if (!captchaToken) {
+      return showError("Captcha failed. Please try again.");
+    }
+
     const res = await fetch("http://localhost:3001/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier, password }),
+      body: JSON.stringify({ identifier, password, captchaToken }),
     });
 
     const result = await res.json();

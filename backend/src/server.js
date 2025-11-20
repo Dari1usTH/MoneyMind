@@ -4,15 +4,50 @@ require('dotenv').config({
 });
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
-const fetch = require('node-fetch'); 
-const crypto = require("crypto");
+const fetch = require('node-fetch');
+const crypto = require('crypto');
 
 const app = express();
+
+app.use(helmet());
 app.use(express.json());
-app.use(cors({ origin: true, credentials: true }));
+app.use(cookieParser());
+
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:5500',
+];
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 10, 
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many attempts. Please try again later.' },
+});
+
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many reset attempts. Please try again later.' },
+});
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -36,45 +71,25 @@ const pendingUsers = new Map();
 const pendingLoginUsers = new Map();
 const passwordResetRequests = new Map(); 
 
-app.post('/api/verify-captcha', async (req, res) => {
-  try {
-    const token = req.body && req.body.token;
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing captcha token.',
-      });
-    }
-
-    const params = new URLSearchParams();
-    params.append('secret', process.env.RECAPTCHA_SECRET);
-    params.append('response', token);
-
-    const googleRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-    });
-
-    const data = await googleRes.json();
-
-    if (data.success) {
-      return res.json({ success: true });
-    }
-
-    return res.status(400).json({
-      success: false,
-      message: 'Captcha invalid.',
-      errors: data['error-codes'] || [],
-    });
-  } catch (err) {
-    console.error('Captcha verify error:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error while verifying captcha.',
-    });
+async function verifyCaptchaToken(token) {
+  if (!process.env.RECAPTCHA_SECRET) {
+    return true;
   }
-});
+  if (!token) return false;
+
+  const params = new URLSearchParams();
+  params.append('secret', process.env.RECAPTCHA_SECRET);
+  params.append('response', token);
+
+  const googleRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  });
+
+  const data = await googleRes.json();
+  return !!data.success;
+}
 
 app.get('/api/recaptcha-site-key', (req, res) => {
   return res.json({
@@ -82,7 +97,7 @@ app.get('/api/recaptcha-site-key', (req, res) => {
   });
 });
 
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', authLimiter, async (req, res) => {
   try {
     const {
       firstName,
@@ -92,7 +107,16 @@ app.post('/api/register', async (req, res) => {
       password,
       dob = null,
       phone = null,
+      captchaToken,
     } = req.body || {};
+
+    const captchaOk = await verifyCaptchaToken(captchaToken);
+    if (!captchaOk) {
+      return res.status(400).json({
+        success: false,
+        message: 'Captcha verification failed.',
+      });
+    }
 
     if (!firstName || !lastName || !email || !password) {
       return res
@@ -116,41 +140,36 @@ app.post('/api/register', async (req, res) => {
       );
 
       if (dupRows.length) {
-        const existing = dupRows[0];
-
-        if (phone && existing.phone_number === phone) {
-          return res.json({
-            success: false,
-            message:
-              'This phone number is already associated with an account. Please try logging in.',
-          });
-        }
-
-        if (email && existing.email === email) {
-          return res.json({
-            success: false,
-            message:
-              'This email address is already associated with an account. Please try logging in.',
-          });
-        }
-
-        if (finalUsername && existing.username === finalUsername) {
-          return res.json({
-            success: false,
-            message:
-              'This username is already taken. Please choose another one or try logging in.',
-          });
-        }
-
         return res.json({
           success: false,
-          message: 'This account already exists. Please try logging in.',
+          message: 'An account already exists with these details. If you already have an account, please log in.',
         });
       }
+
     } finally {
       conn.release();
     }
 
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters.',
+      });
+    }
+
+    if (email.length > 254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid email address.',
+      });
+    }
+
+    if (firstName.length > 50 || lastName.length > 50 || (username && username.length > 50)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name/username too long.',
+      });
+    }
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -168,6 +187,7 @@ app.post('/api/register', async (req, res) => {
       phone: phone || null,
       code,
       expiresAt,
+      attempts: 0,
     });
 
     try {
@@ -206,7 +226,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-app.post('/api/register-verify', async (req, res) => {
+app.post('/api/register-verify',authLimiter, async (req, res) => {
   try {
     const { email, code } = req.body || {};
 
@@ -232,7 +252,17 @@ app.post('/api/register-verify', async (req, res) => {
       });
     }
 
+    if (pending.attempts >= 5) {
+      pendingUsers.delete(email);
+      return res.json({
+        success: false,
+        message: 'Too many invalid attempts. Please register again.',
+      });
+    }
+
     if (pending.code !== code) {
+      pending.attempts += 1;
+      pendingUsers.set(email, pending);
       return res.json({
         success: false,
         message: 'Invalid verification code. Please try again.',
@@ -271,7 +301,7 @@ app.post('/api/register-verify', async (req, res) => {
   }
 });
 
-app.post('/api/register-resend', async (req, res) => {
+app.post('/api/register-resend',authLimiter, async (req, res) => {
   try {
     const { email } = req.body || {};
 
@@ -325,9 +355,9 @@ app.post('/api/register-resend', async (req, res) => {
 });
 
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login',authLimiter, async (req, res) => {
   try {
-    const { identifier, password } = req.body || {};
+    const { identifier, password, captchaToken } = req.body || {};
 
     if (!identifier || !password) {
       return res.json({ success: false, message: "Please fill in all fields!" });
@@ -350,7 +380,7 @@ app.post('/api/login', async (req, res) => {
     if (!rows.length) {
       return res.json({
         success: false,
-        message: "This user does not exist. Please register first!",
+        message: "Invalid credentials.",
       });
     }
 
@@ -360,7 +390,7 @@ app.post('/api/login', async (req, res) => {
     if (!passMatch) {
       return res.json({
         success: false,
-        message: "Incorrect password. Please try again.",
+        message: "Invalid credentials.",
       });
     }
 
@@ -374,6 +404,7 @@ app.post('/api/login', async (req, res) => {
       first_name: user.first_name,
       code,
       expiresAt,
+      attempts: 0,
     });
 
     await mailTransporter.sendMail({
@@ -403,7 +434,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-app.post('/api/login-verify', async (req, res) => {
+app.post('/api/login-verify',authLimiter, async (req, res) => {
   try {
     const { email, code, remember } = req.body || {};
 
@@ -430,7 +461,17 @@ app.post('/api/login-verify', async (req, res) => {
       });
     }
 
+    if (pending.attempts >= 5) {
+      pendingLoginUsers.delete(email);
+      return res.json({
+        success: false,
+        message: "Too many invalid attempts. Please login again.",
+      });
+    }
+
     if (pending.code !== code) {
+      pending.attempts += 1;
+      pendingLoginUsers.set(email, pending);
       return res.json({
         success: false,
         message: "Invalid code. Please try again.",
@@ -441,8 +482,8 @@ app.post('/api/login-verify', async (req, res) => {
 
     const cookieOptions = {
       httpOnly: true,
-      sameSite: "lax",
-      secure: false,
+      sameSite: 'lax', 
+      secure: process.env.NODE_ENV === 'production',
     };
 
     if (remember) {
@@ -467,7 +508,7 @@ app.post('/api/login-verify', async (req, res) => {
   }
 });
 
-app.post('/api/login-resend', async (req, res) => {
+app.post('/api/login-resend',authLimiter, async (req, res) => {
   try {
     const { email } = req.body || {};
 
@@ -523,13 +564,13 @@ app.post('/api/logout', (req, res) => {
   res.clearCookie('session', {
     httpOnly: true,
     sameSite: 'lax',
-    secure: false, // true if https
+    secure: process.env.NODE_ENV === 'production',
   });
 
   return res.json({ success: true });
 });
 
-app.post("/api/forgot-password", async (req, res) => {
+app.post("/api/forgot-password",passwordResetLimiter, async (req, res) => {
   try {
     const { email } = req.body || {};
 
@@ -592,7 +633,7 @@ app.post("/api/forgot-password", async (req, res) => {
   }
 });
 
-app.post("/api/reset-password", async (req, res) => {
+app.post("/api/reset-password",passwordResetLimiter, async (req, res) => {
   try {
     const { email, token, newPassword, confirmPassword } = req.body || {};
 

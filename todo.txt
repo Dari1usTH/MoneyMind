@@ -1,12 +1,9 @@
 chat intre useri
 
 -------------------to do --------------
-
+securitate: campuri injectibile , email , parola buna
 ---------------- bug ---------------------
 
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-
-fgpassword succes notify color
-register box smaller

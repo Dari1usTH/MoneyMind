@@ -121,3 +121,4 @@ dobInput.addEventListener("change", () => {
     dobDisplay.parentElement.classList.remove("filled");
   }
 });
+
