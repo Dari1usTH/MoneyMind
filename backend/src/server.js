@@ -72,8 +72,8 @@ const pendingLoginUsers = new Map();
 const passwordResetRequests = new Map(); 
 
 async function verifyCaptchaToken(token) {
-  if (!process.env.RECAPTCHA_SECRET) {
-    return true;
+  if (process.env.NODE_ENV === 'production' && !process.env.RECAPTCHA_SECRET) {
+    console.warn('WARNING: RECAPTCHA_SECRET is not set in production!');
   }
   if (!token) return false;
 
@@ -354,13 +354,20 @@ app.post('/api/register-resend',authLimiter, async (req, res) => {
   }
 });
 
-
 app.post('/api/login',authLimiter, async (req, res) => {
   try {
     const { identifier, password, captchaToken } = req.body || {};
 
     if (!identifier || !password) {
       return res.json({ success: false, message: "Please fill in all fields!" });
+    }
+
+    const captchaOk = await verifyCaptchaToken(captchaToken);
+    if (!captchaOk) {
+      return res.status(400).json({
+        success: false,
+        message: 'Captcha verification failed.',
+      });
     }
 
     const conn = await pool.getConnection();
@@ -375,7 +382,6 @@ app.post('/api/login',authLimiter, async (req, res) => {
     } finally {
       conn.release();
     }
-
 
     if (!rows.length) {
       return res.json({
@@ -650,6 +656,20 @@ app.post("/api/reset-password",passwordResetLimiter, async (req, res) => {
         message: "Passwords do not match.",
       });
     }
+    
+    if (newPassword.length < 8) {
+      return res.json({
+        success: false,
+        message: "Password must be at least 8 characters.",
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.json({
+        success: false,
+        message: "Password must be at least 8 characters.",
+      });
+    }
 
     const data = passwordResetRequests.get(email);
 
@@ -704,4 +724,3 @@ app.post("/api/reset-password",passwordResetLimiter, async (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
-

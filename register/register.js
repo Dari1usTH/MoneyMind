@@ -60,6 +60,12 @@ registerBtn.addEventListener("click", async (e) => {
   }
 
   try {
+    const captchaToken = await getCaptchaToken();
+
+    if (!captchaToken) {
+      return showError("Captcha failed. Please try again.");
+    }
+
     const res = await fetch("http://localhost:3001/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -71,6 +77,7 @@ registerBtn.addEventListener("click", async (e) => {
         password,
         dob,
         phone,
+        captchaToken,
       }),
     });
 

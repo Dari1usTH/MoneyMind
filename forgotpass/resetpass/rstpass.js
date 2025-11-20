@@ -55,6 +55,12 @@ if (resetBtn) {
       return;
     }
 
+    if (newPassword.length < 8) {
+      setLoading(false);
+      showMessage("Password must be at least 8 characters long.", "error");
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setLoading(false);
       showMessage("Passwords do not match!", "error");
