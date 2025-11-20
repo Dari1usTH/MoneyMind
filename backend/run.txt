@@ -1,4 +1,1 @@
 node src/server.js
-
-https://myaccount.google.com/apppasswords
-https://www.google.com/recaptcha/admin/site/739384496

@@ -1,74 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MoneyMind - Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoneyMind - Dashboard</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="../captcha/captcha.js"></script>
 </head>
-<body>
-    <nav class="navbar">
-        <div class="nav-logo">
-            <h2>Money<span>Mind</span></h2>
-        </div>
-        <ul class="nav-links">
-            <li><a href="#" class="active">Dashboard</a></li>
-            <li><a href="../investments/investments.html">Investments</a></li>
-            <li><a href="#">Reports</a></li>
-            <li><a href="#">Profile</a></li>
-            <li><a href="#">Settings</a></li>
-        </ul>
-        <button id="logoutBtn" class="logout-btn"></button>
-    </nav>
-    <div class="dashboard" id="dashboard">
-        <header>
-            <h2>Welcome back, <span id="userName">Investor!</span></h2>
-        </header>
-
-        <section class="cards">
-            <div class="card">
-                <h3>Total Balance</h3>
-                <p class="value">1$</p>
-            </div>
-            <div class="card">
-                <h3>Monthly Profit</h3>
-                <p class="value loss">1$</p>
-            </div>
-            <div class="card">
-                <h3>Losses</h3>
-                <p class="value loss">1$</p>
-            </div>
-        </section>
-
-        <section class="chart">
-            <h3>Investment Growth</h3>
-            <canvas id="investmentChart"></canvas>
-        </section>
-
-        <section class="about">
-            <div class="about-card">
-                <h3>About MoneyMind</h3>
-                <p>MoneyMind is a personal finance dashboard designed to help you track your investments, profits, and losses in a clean and visual way.</p>
-                <p class="tip">Tip: Stay consistent — monitor your progress weekly to achieve your goals!</p>
-            </div>
-
-            <div class="about-card">
-                <h3>About Me</h3>
-                <p>Hi! I’m Darius — passionate about coding, design, and smart investments. I built MoneyMind to help people stay organized and confident with their finances.</p>
-                <p class="note">Passion • Precision • Growth</p>
-            </div>
-        </section>
-
-        <footer class="footer">
-            <p>© 2025 <span>MoneyMind</span> • Made by Darius • Mail: <a href="mailto:moneymind@gmail.com">moneymind@gmail.com</a></p>
-        </footer>
+<body onload="ensureCaptcha()">
+  <nav class="navbar">
+    <div class="nav-logo">
+      <h2>Money<span>Mind</span></h2>
     </div>
+    <ul class="nav-links">
+      <li><a href="#" class="active">Dashboard</a></li>
+      <li><a href="../investments/investments.html">Investments</a></li>
+      <li><a href="#">Reports</a></li>
+      <li><a href="#">Profile</a></li>
+      <li><a href="#">Settings</a></li>
+    </ul>
+    <button id="logoutBtn" class="logout-btn"></button>
+  </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="script.js"></script>
-    <script src="../userbutton/script.js"></script>
-    <script src="../captcha/captcha.js"></script>
-    <script> ensureCaptcha(); </script>
+  <main class="dashboard">
+    <header class="dashboard-header">
+      <div>
+        <p class="subtitle">Good afternoon,</p>
+        <h2>Welcome back, <span id="userName">Guest</span> 👋</h2>
+        <p class="muted">
+          Track your portfolio, watch the markets and stay up to date
+          with the latest investing news.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <div class="header-pill" id="currentDate"></div>
+        <button class="primary-ghost" id="addInvestmentBtn">+ Add Investment</button>
+      </div>
+    </header>
+
+    <section class="cards-row">
+      <div class="card stat-card">
+        <p class="card-label">Total Balance</p>
+        <p class="card-value">$1.00</p>
+        <p class="card-caption">All your tracked accounts</p>
+      </div>
+
+      <div class="card stat-card">
+        <p class="card-label">Monthly P/L</p>
+        <p class="card-value profit">+$0.00</p>
+        <p class="card-caption">Performance this month</p>
+      </div>
+
+      <div class="card stat-card">
+        <p class="card-label">Total Losses</p>
+        <p class="card-value loss">-$0.00</p>
+        <p class="card-caption">Realised &amp; unrealised</p>
+      </div>
+
+      <div class="card stat-card">
+        <p class="card-label">Active Positions</p>
+        <p class="card-value">0</p>
+        <p class="card-caption">Across all assets</p>
+      </div>
+    </section>
+
+    <section class="dashboard-row">
+      <div class="card quick-card">
+        <h3>Quick actions</h3>
+        <button class="chip-btn">+ New trade</button>
+        <button class="chip-btn">Add deposit</button>
+        <button class="chip-btn">Export report</button>
+        <p class="card-caption">
+          Tip: log each trade while it’s still fresh in your mind.
+        </p>
+      </div>
+
+      <div class="card news-card">
+        <div class="news-header">
+          <div>
+            <h3>MoneyMind <span>News Bot</span></h3>
+            <p class="news-subtitle">
+              Latest headlines from the world of
+              <span class="accent">forex, markets &amp; geopolitics</span>.
+            </p>
+          </div>
+
+          <div class="news-controls">
+            <select id="newsCategory">
+              <option value="forex">Forex / Macro</option>
+              <option value="stocks">US Stocks</option>
+              <option value="crypto">Crypto</option>
+            </select>
+            <button id="newsRefreshBtn" type="button">Refresh</button>
+          </div>
+        </div>
+
+        <div id="newsStatus" class="news-status"></div>
+
+        <div id="newsList" class="news-list">
+        </div>
+      </div>
+    </section>
+
+    <section class="dashboard-row bottom-row">
+      <div class="card goals-card">
+        <h3>Goals &amp; Focus</h3>
+        <ul class="goals-list">
+          <li>
+            📊 <span>Stay consistent with your risk per trade.</span>
+          </li>
+          <li>
+            🧠 <span>Review your performance every weekend.</span>
+          </li>
+          <li>
+            📰 <span>Read at least 3 market headlines per day.</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card about-card">
+        <h3>About MoneyMind</h3>
+        <p>
+          MoneyMind is a personal finance dashboard designed to help you
+          track your investments, profits, and losses in a clean and visual way.
+        </p>
+        <p class="tip">
+          Tip: Stay consistent — monitor your progress weekly to achieve your goals!
+        </p>
+      </div>
+
+      <div class="card about-card">
+        <h3>About Me</h3>
+        <p>
+          Hi! I’m Darius — passionate about coding, design, and smart investments.
+          I built MoneyMind to help people stay organized and confident with their finances.
+        </p>
+        <p class="note">Passion • Precision • Growth</p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>
+        © 2025 <span>MoneyMind</span> • Made by Darius • Mail:
+        <a href="mailto:moneymind@gmail.com">moneymind@gmail.com</a>
+      </p>
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
+  <script src="newsbot/newsbot.js"></script>
+  <script src="../userbutton/script.js"></script>
+
+  <script>
+    const dateEl = document.getElementById('currentDate');
+    if (dateEl) {
+      const now = new Date();
+      dateEl.textContent = now.toLocaleDateString('en-US', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+  </script>
 </body>
 </html>

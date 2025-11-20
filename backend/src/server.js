@@ -20,18 +20,30 @@ app.use(express.json());
 app.use(cookieParser());
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5500',
-];
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) {
       return callback(null, true);
     }
+
+    // accept all port
+    const isLocalhost =
+      /^https?:\/\/localhost(?::\d+)?$/.test(origin) ||
+      /^https?:\/\/127\.0\.0\.1(?::\d+)?$/.test(origin);
+
+    if (isLocalhost || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.warn('CORS blocked origin:', origin);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));
+
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
@@ -718,6 +730,99 @@ app.post("/api/reset-password",passwordResetLimiter, async (req, res) => {
     return res.json({
       success: false,
       message: "Server error. Please try again later.",
+    });
+  }
+});
+
+app.post('/api/verify-captcha', async (req, res) => {
+  try {
+    const { token } = req.body || {};
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing captcha token.',
+      });
+    }
+
+    const ok = await verifyCaptchaToken(token);
+
+    if (!ok) {
+      return res.status(400).json({
+        success: false,
+        message: 'Captcha invalid.',
+      });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Captcha verify error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while verifying captcha.',
+    });
+  }
+});
+
+app.get('/api/news', async (req, res) => {
+  try {
+    const category = (req.query.category || 'forex').toLowerCase();
+    const apiKey = process.env.NEWS_API_KEY; 
+
+    if (!apiKey) {
+      return res.status(500).json({
+        success: false,
+        message: 'News API is not configured on the server.',
+      });
+    }
+
+    let query = 'forex OR "currency markets" OR "interest rates" OR fed';
+    if (category === 'crypto') {
+      query = 'crypto OR bitcoin OR ethereum OR "digital assets"';
+    } else if (category === 'stocks') {
+      query = '"stock market" OR equities OR "earnings" OR "S&P 500"';
+    }
+
+    const url = new URL('https://newsapi.org/v2/everything');
+    url.searchParams.set('q', query);
+    url.searchParams.set('language', 'en');
+    url.searchParams.set('pageSize', '10');
+    url.searchParams.set('sortBy', 'publishedAt');
+
+    const apiRes = await fetch(url.toString(), {
+      headers: {
+        'X-Api-Key': apiKey,
+      },
+    });
+
+    if (!apiRes.ok) {
+      console.error('News API error status:', apiRes.status);
+      return res.status(502).json({
+        success: false,
+        message: 'Upstream news service error.',
+      });
+    }
+
+    const raw = await apiRes.json();
+    const rawArticles = raw.articles || [];
+
+    const articles = rawArticles.slice(0, 10).map((item, idx) => ({
+      id: item.url || `mm-${Date.now()}-${idx}`,
+      title: String(item.title || '').slice(0, 200),
+      summary: item.description
+        ? String(item.description).slice(0, 400)
+        : null,
+      source: item.source && item.source.name ? item.source.name : null,
+      publishedAt: item.publishedAt || null,
+      url: item.url || null,
+    }));
+
+    return res.json({ success: true, articles });
+  } catch (err) {
+    console.error('News endpoint error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while loading news.',
     });
   }
 });
