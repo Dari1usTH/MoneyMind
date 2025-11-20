@@ -52,29 +52,25 @@ loginBtn.addEventListener("click", async (e) => {
     return showError("Please fill in all fields!");
   }
 
-  try {
-    const captchaToken = await getCaptchaToken();
-
-    if (!captchaToken) {
-      return showError("Captcha failed. Please try again.");
-    }
-
+    try {
     const res = await fetch("http://localhost:3001/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier, password, captchaToken }),
+      body: JSON.stringify({ identifier, password }),
+      credentials: "include", 
     });
 
     const result = await res.json();
 
     if (!result.success) {
-      return showError(result.message);
+      return showError(result.message || "Login failed.");
     }
 
     loader.style.display = "none";
 
     localStorage.setItem("pendingLoginEmail", result.email);
     localStorage.setItem("loginRemember", remember ? "1" : "0");
+
     if (result.expiresAt) {
       localStorage.setItem("loginCodeExpiresAt", String(result.expiresAt));
     } else {
@@ -83,6 +79,7 @@ loginBtn.addEventListener("click", async (e) => {
         String(Date.now() + 10 * 60 * 1000)
       );
     }
+
     localStorage.removeItem("resendAttempts");
     localStorage.removeItem("resendAvailableAt");
 
@@ -91,6 +88,7 @@ loginBtn.addEventListener("click", async (e) => {
     console.error(err);
     showError("Server error. Try again later.");
   }
+
 });
 
 document.addEventListener("keydown", (e) => {

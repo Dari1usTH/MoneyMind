@@ -59,13 +59,7 @@ registerBtn.addEventListener("click", async (e) => {
     return showError("You cannot use 'admin' in your first name, last name, or username!");
   }
 
-  try {
-    const captchaToken = await getCaptchaToken();
-
-    if (!captchaToken) {
-      return showError("Captcha failed. Please try again.");
-    }
-
+    try {
     const res = await fetch("http://localhost:3001/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -77,7 +71,6 @@ registerBtn.addEventListener("click", async (e) => {
         password,
         dob,
         phone,
-        captchaToken,
       }),
     });
 
@@ -94,7 +87,6 @@ registerBtn.addEventListener("click", async (e) => {
     localStorage.setItem("registerResendAvailableAt", Date.now() + 30 * 1000);
 
     window.location.replace(`../register/emailverify/verify.html`);
-
   } catch (error) {
     console.error(error);
     showError("Server error. Please try again later.");

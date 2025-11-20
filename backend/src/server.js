@@ -84,24 +84,44 @@ const pendingLoginUsers = new Map();
 const passwordResetRequests = new Map(); 
 
 async function verifyCaptchaToken(token) {
-  if (process.env.NODE_ENV === 'production' && !process.env.RECAPTCHA_SECRET) {
-    console.warn('WARNING: RECAPTCHA_SECRET is not set in production!');
+  if (!process.env.RECAPTCHA_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[reCAPTCHA] RECAPTCHA_SECRET missing in production!');
+      return false;
+    }
+    console.warn('[reCAPTCHA] RECAPTCHA_SECRET missing – skipping in dev.');
+    return true;
   }
-  if (!token) return false;
 
-  const params = new URLSearchParams();
-  params.append('secret', process.env.RECAPTCHA_SECRET);
-  params.append('response', token);
+  if (!token) {
+    console.warn('[reCAPTCHA] Missing token.');
+    return false;
+  }
 
-  const googleRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString(),
-  });
+  try {
+    const params = new URLSearchParams();
+    params.append('secret', process.env.RECAPTCHA_SECRET);
+    params.append('response', token);
 
-  const data = await googleRes.json();
-  return !!data.success;
+    const googleRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+
+    const data = await googleRes.json();
+
+    if (!data.success) {
+      console.warn('[reCAPTCHA] Invalid verification response:', data);
+    }
+
+    return !!data.success;
+  } catch (err) {
+    console.error('[reCAPTCHA] Error while verifying token:', err);
+    return false;
+  }
 }
+
 
 app.get('/api/recaptcha-site-key', (req, res) => {
   return res.json({
@@ -119,16 +139,7 @@ app.post('/api/register', authLimiter, async (req, res) => {
       password,
       dob = null,
       phone = null,
-      captchaToken,
     } = req.body || {};
-
-    const captchaOk = await verifyCaptchaToken(captchaToken);
-    if (!captchaOk) {
-      return res.status(400).json({
-        success: false,
-        message: 'Captcha verification failed.',
-      });
-    }
 
     if (!firstName || !lastName || !email || !password) {
       return res
@@ -368,18 +379,10 @@ app.post('/api/register-resend',authLimiter, async (req, res) => {
 
 app.post('/api/login',authLimiter, async (req, res) => {
   try {
-    const { identifier, password, captchaToken } = req.body || {};
+    const { identifier, password } = req.body || {};
 
     if (!identifier || !password) {
       return res.json({ success: false, message: "Please fill in all fields!" });
-    }
-
-    const captchaOk = await verifyCaptchaToken(captchaToken);
-    if (!captchaOk) {
-      return res.status(400).json({
-        success: false,
-        message: 'Captcha verification failed.',
-      });
     }
 
     const conn = await pool.getConnection();
