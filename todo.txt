@@ -7,5 +7,4 @@ securitate: campuri injectibile , email , parola buna
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-
-style for bar and select news type
+base for profile page

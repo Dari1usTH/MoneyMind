@@ -122,6 +122,55 @@ async function verifyCaptchaToken(token) {
   }
 }
 
+async function authMiddleware(req, res, next) {
+  try {
+    const userId = req.cookies.session;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authenticated.',
+      });
+    }
+
+    const conn = await pool.getConnection();
+    let rows;
+    try {
+      const [data] = await conn.execute(
+        `SELECT id, first_name, last_name, username, email, birth_date, phone_number, created_at
+         FROM users
+         WHERE id = ? LIMIT 1`,
+        [userId]
+      );
+      rows = data;
+    } finally {
+      conn.release();
+    }
+
+    if (!rows.length) {
+      res.clearCookie('session');
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid session.',
+      });
+    }
+
+    req.user = rows[0]; 
+    next();
+  } catch (err) {
+    console.error('authMiddleware error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error.',
+    });
+  }
+}
+
+app.get('/api/me', authMiddleware, async (req, res) => {
+  return res.json({
+    success: true,
+    user: req.user,
+  });
+});
 
 app.get('/api/recaptcha-site-key', (req, res) => {
   return res.json({
@@ -826,6 +875,118 @@ app.get('/api/news', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Server error while loading news.',
+    });
+  }
+});
+
+app.get('/api/accounts', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const conn = await pool.getConnection();
+    let rows;
+    try {
+      const [data] = await conn.execute(
+        `SELECT id, account_name, account_type, currency, balance, is_default, created_at, updated_at
+         FROM accounts
+         WHERE user_id = ?
+         ORDER BY is_default DESC, created_at ASC`,
+        [userId]
+      );
+      rows = data;
+    } finally {
+      conn.release();
+    }
+
+    return res.json({
+      success: true,
+      accounts: rows,
+    });
+  } catch (err) {
+    console.error('GET /api/accounts error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not load accounts.',
+    });
+  }
+});
+
+app.post('/api/accounts', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const {
+      accountName,
+      accountType = 'other',
+      currency,
+      initialBalance = 0,
+      setAsDefault = false,
+    } = req.body || {};
+
+    if (!accountName || !currency) {
+      return res.status(400).json({
+        success: false,
+        message: 'Account name and currency are required.',
+      });
+    }
+
+    const allowedCurrencies = ['USD', 'EUR', 'RON', 'GBP', 'CHF'];
+    if (!allowedCurrencies.includes(currency)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Unsupported currency.',
+      });
+    }
+
+    const allowedTypes = ['broker', 'bank', 'crypto', 'cash', 'other'];
+    const safeAccountType = allowedTypes.includes(accountType) ? accountType : 'other';
+
+    let balance = Number(initialBalance);
+    if (Number.isNaN(balance) || balance < 0) {
+      balance = 0;
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      if (setAsDefault) {
+        await conn.execute(
+          'UPDATE accounts SET is_default = 0 WHERE user_id = ?',
+          [userId]
+        );
+      }
+
+      const [result] = await conn.execute(
+        `INSERT INTO accounts (user_id, account_name, account_type, currency, balance, is_default)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [userId, accountName, safeAccountType, currency, balance, setAsDefault ? 1 : 0]
+      );
+
+      const [rows] = await conn.execute(
+        `SELECT id, account_name, account_type, currency, balance, is_default, created_at, updated_at
+         FROM accounts
+         WHERE id = ? AND user_id = ?
+         LIMIT 1`,
+        [result.insertId, userId]
+      );
+
+      await conn.commit();
+
+      return res.status(201).json({
+        success: true,
+        account: rows[0],
+      });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('POST /api/accounts error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not create account.',
     });
   }
 });

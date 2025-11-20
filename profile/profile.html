@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoneyMind - Profile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="profile.css" />
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-logo">
+      <h2>Money<span>Mind</span></h2>
+    </div>
+    <ul class="nav-links">
+      <li><a href="../dashboard/index.html">Dashboard</a></li>
+      <li><a href="../investments/investments.html">Investments</a></li>
+      <li><a href="#">Reports</a></li>
+      <li><a href="#" class="active">Profile</a></li>
+      <li><a href="#">Settings</a></li>
+    </ul>
+    <button id="logoutBtn" class="logout-btn"></button>
+  </nav>
+
+  <main class="dashboard">
+    <header class="dashboard-header">
+      <div>
+        <p class="subtitle">Account overview</p>
+        <h2>Welcome back, <span id="userName">Guest</span> 👋</h2>
+        <p class="muted">
+          View your personal details and manage all your MoneyMind accounts in one place.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <div class="header-pill" id="currentDate"></div>
+        <button class="primary-ghost" id="openNewAccountBtn">+ New account</button>
+      </div>
+    </header>
+
+    <section class="dashboard-row">
+      <section class="card profile-info">
+        <h2>My data</h2>
+        <div class="profile-info-grid">
+          <div class="info-item">
+            <span>First name</span>
+            <strong id="firstName"></strong>
+          </div>
+          <div class="info-item">
+            <span>Last name</span>
+            <strong id="lastName"></strong>
+          </div>
+          <div class="info-item">
+            <span>Username</span>
+            <strong id="username"></strong>
+          </div>
+          <div class="info-item">
+            <span>Email</span>
+            <strong id="email"></strong>
+          </div>
+          <div class="info-item">
+            <span>Birth date</span>
+            <strong id="birthDate"></strong>
+          </div>
+          <div class="info-item">
+            <span>Phone</span>
+            <strong id="phone"></strong>
+          </div>
+          <div class="info-item">
+            <span>Joined</span>
+            <strong id="createdAt"></strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="card account-details" id="accountDetails">
+        <h2>Selected account</h2>
+        <div class="account-details-content">
+          <p><span>Name:</span> <strong id="detailName">-</strong></p>
+          <p><span>Type:</span> <strong id="detailType">-</strong></p>
+          <p><span>Currency:</span> <strong id="detailCurrency">-</strong></p>
+          <p><span>Balance:</span> <strong id="detailBalance">-</strong></p>
+          <p><span>Default:</span> <strong id="detailDefault">-</strong></p>
+          <p><span>Created at:</span> <strong id="detailCreatedAt">-</strong></p>
+        </div>
+      </section>
+    </section>
+
+    <section class="card accounts-section">
+      <div class="accounts-header">
+        <h2>My accounts</h2>
+        <p class="card-caption">
+          Select an account to see more details or create a new one using the plus card.
+        </p>
+      </div>
+      <div class="accounts-list" id="accountsList">
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>
+        © 2025 <span>MoneyMind</span> • Made by Darius • Mail:
+        <a href="mailto:moneymind@gmail.com">moneymind@gmail.com</a>
+      </p>
+    </footer>
+  </main>
+    <div class="modal-backdrop hidden" id="modalBackdrop"></div>
+    <div class="modal hidden" id="newAccountModal">
+      <div class="modal-header">
+        <h3>Create new account</h3>
+        <button class="modal-close" id="modalCloseBtn">&times;</button>
+      </div>
+      <form id="newAccountForm" class="modal-body">
+        <label>
+          Account name
+          <input type="text" name="accountName" required />
+        </label>
+
+        <label>
+          Account type
+          <select name="accountType">
+            <option value="broker">Broker</option>
+            <option value="bank">Bank</option>
+            <option value="crypto">Crypto</option>
+            <option value="cash">Cash</option>
+            <option value="other" selected>Other</option>
+          </select>
+        </label>
+
+        <label>
+          Currency
+          <select name="currency" required>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="RON" selected>RON</option>
+            <option value="GBP">GBP</option>
+            <option value="CHF">CHF</option>
+          </select>
+        </label>
+
+        <label>
+          Initial balance
+          <input type="number" step="0.01" name="initialBalance" value="0" />
+        </label>
+
+        <label class="checkbox-row">
+          <input type="checkbox" name="setAsDefault" />
+          <span>Set as default account</span>
+        </label>
+
+        <button type="submit" class="primary-btn">Create account</button>
+      </form>
+    </div>
+
+  <script src="profile.js"></script>
+  <script src="../userbutton/script.js"></script>
+  <script src="account.js"></script>
+</body>
+</html>
