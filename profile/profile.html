@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MoneyMind - Profile</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="profile.css" />
   <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="profile.css" />
 </head>
 <body>
   <nav class="navbar">
@@ -14,7 +14,7 @@
       <h2>Money<span>Mind</span></h2>
     </div>
     <ul class="nav-links">
-      <li><a href="../dashboard/index.html">Dashboard</a></li>
+      <li><a href="../index.html">Dashboard</a></li>
       <li><a href="../investments/investments.html">Investments</a></li>
       <li><a href="#">Reports</a></li>
       <li><a href="#" class="active">Profile</a></li>
@@ -105,56 +105,56 @@
       </p>
     </footer>
   </main>
-    <div class="modal-backdrop hidden" id="modalBackdrop"></div>
-    <div class="modal hidden" id="newAccountModal">
-      <div class="modal-header">
-        <h3>Create new account</h3>
-        <button class="modal-close" id="modalCloseBtn">&times;</button>
-      </div>
-      <form id="newAccountForm" class="modal-body">
-        <label>
-          Account name
-          <input type="text" name="accountName" required />
-        </label>
 
-        <label>
-          Account type
-          <select name="accountType">
-            <option value="broker">Broker</option>
-            <option value="bank">Bank</option>
-            <option value="crypto">Crypto</option>
-            <option value="cash">Cash</option>
-            <option value="other" selected>Other</option>
-          </select>
-        </label>
-
-        <label>
-          Currency
-          <select name="currency" required>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="RON" selected>RON</option>
-            <option value="GBP">GBP</option>
-            <option value="CHF">CHF</option>
-          </select>
-        </label>
-
-        <label>
-          Initial balance
-          <input type="number" step="0.01" name="initialBalance" value="0" />
-        </label>
-
-        <label class="checkbox-row">
-          <input type="checkbox" name="setAsDefault" />
-          <span>Set as default account</span>
-        </label>
-
-        <button type="submit" class="primary-btn">Create account</button>
-      </form>
+  <div class="modal-backdrop hidden" id="modalBackdrop"></div>
+  <div class="modal hidden" id="newAccountModal">
+    <div class="modal-header">
+      <h3>Create new account</h3>
+      <button class="modal-close" id="modalCloseBtn">&times;</button>
     </div>
+    <form id="newAccountForm" class="modal-body">
+      <label>
+        Account name
+        <input type="text" name="accountName" required />
+      </label>
+
+      <label>
+        Account type
+        <select name="accountType">
+          <option value="broker">Broker</option>
+          <option value="bank">Bank</option>
+          <option value="crypto">Crypto</option>
+          <option value="cash">Cash</option>
+          <option value="other" selected>Other</option>
+        </select>
+      </label>
+
+      <label>
+        Currency
+        <select name="currency" required>
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+          <option value="RON" selected>RON</option>
+          <option value="GBP">GBP</option>
+          <option value="CHF">CHF</option>
+        </select>
+      </label>
+
+      <label>
+        Initial balance
+        <input type="number" step="0.01" name="initialBalance" value="0" />
+      </label>
+
+      <label class="checkbox-row">
+        <input type="checkbox" name="setAsDefault" />
+        <span>Set as default account</span>
+      </label>
+
+      <button type="submit" class="primary-btn">Create account</button>
+    </form>
+  </div>
 
   <script src="profile.js"></script>
   <script src="../userbutton/script.js"></script>
-  <script src="account.js"></script>
 </body>
 </html>
