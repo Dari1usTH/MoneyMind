@@ -95,9 +95,14 @@ function populateProfile(user) {
   document.getElementById("createdAt").textContent = user.created_at
     ? new Date(user.created_at).toLocaleDateString()
     : "-";
+
+  const userNameEl = document.getElementById("userName");
+  if (userNameEl) {
+    userNameEl.textContent = user.first_name || user.username || "Guest";
+  }
 }
 
-async function loadAccounts() {
+async function loadAccounts(selectId = null) {
   try {
     const res = await fetch(`${API_BASE}/api/accounts`, {
       credentials: "include",
@@ -117,8 +122,12 @@ async function loadAccounts() {
     accounts = data.accounts || [];
 
     if (accounts.length > 0) {
-      const defaultAcc = accounts.find((a) => a.is_default === 1);
-      selectedAccountId = (defaultAcc || accounts[0]).id;
+      if (selectId && accounts.some((a) => a.id === selectId)) {
+        selectedAccountId = selectId;
+      } else {
+        const defaultAcc = accounts.find((a) => a.is_default === 1 || a.is_default === true);
+        selectedAccountId = (defaultAcc || accounts[0]).id;
+      }
     } else {
       selectedAccountId = null;
     }
@@ -206,9 +215,14 @@ async function handleCreateAccount(e) {
     accountName: formData.get("accountName")?.toString().trim(),
     accountType: formData.get("accountType"),
     currency: formData.get("currency"),
-    initialBalance: formData.get("initialBalance") || 0,
+    initialBalance: Number(formData.get("initialBalance") || 0),
     setAsDefault: formData.get("setAsDefault") === "on",
   };
+
+  if (!payload.accountName) {
+    alert("Te rog completează numele contului.");
+    return;
+  }
 
   try {
     const res = await fetch(`${API_BASE}/api/accounts`, {
@@ -226,11 +240,10 @@ async function handleCreateAccount(e) {
       return;
     }
 
-    accounts.push(data.account);
-    selectedAccountId = data.account.id;
+    const newAccountId = data.account?.id;
 
-    renderAccounts();
-    renderSelectedAccount();
+    await loadAccounts(newAccountId); 
+
     toggleModal(false);
     form.reset();
   } catch (err) {
@@ -238,4 +251,3 @@ async function handleCreateAccount(e) {
     alert("Server error while creating account.");
   }
 }
-
