@@ -467,3 +467,104 @@ body {
     font-size: 14px;
   }
 }
+
+.news-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+#newsTopicSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background: radial-gradient(circle at top left, rgba(0, 255, 198, 0.18), rgba(0, 0, 0, 0.55));
+  border-radius: 999px;
+  border: 1px solid rgba(0, 255, 198, 0.5);
+
+  padding: 8px 36px 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e6f7ff;
+  outline: none;
+  cursor: pointer;
+
+  box-shadow: 0 0 12px rgba(0, 255, 198, 0.25);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}
+
+.select-arrow {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #e6f7ff;
+  opacity: 0.9;
+}
+
+#newsTopicSelect:hover {
+  border-color: rgba(0, 255, 198, 0.8);
+  box-shadow: 0 0 16px rgba(0, 255, 198, 0.4);
+}
+
+#newsTopicSelect:focus {
+  border-color: #00ffc6;
+  box-shadow: 0 0 18px rgba(0, 255, 198, 0.55);
+}
+
+#newsTopicSelect option {
+  background-color: #10252f;
+  color: #e6f7ff;
+}
+
+.news-refresh-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(0, 255, 198, 0.6);
+  background: radial-gradient(circle at top left, rgba(0, 255, 198, 0.14), rgba(0, 0, 0, 0.6));
+  color: #e6f7ff;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.25s;
+  box-shadow: 0 0 10px rgba(0, 255, 198, 0.25);
+}
+
+.news-refresh-btn:hover {
+  background: radial-gradient(circle at top left, rgba(0, 255, 198, 0.2), rgba(0, 0, 0, 0.5));
+  box-shadow: 0 0 16px rgba(0, 255, 198, 0.5);
+  transform: translateY(-1px);
+}
+
+.news-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 255, 198, 0.6) rgba(7, 26, 40, 0.7);
+}
+
+.news-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.news-list::-webkit-scrollbar-track {
+  background: rgba(7, 26, 40, 0.7);
+  border-radius: 999px;
+}
+
+.news-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(#00ffc6, #00b3ff);
+  border-radius: 999px;
+}
+
+.news-list::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(#00fff0, #1ec5ff);
+}

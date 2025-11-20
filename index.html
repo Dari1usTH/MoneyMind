@@ -81,20 +81,23 @@
       <div class="card news-card">
         <div class="news-header">
           <div>
-            <h3>MoneyMind <span>News Bot</span></h3>
-            <p class="news-subtitle">
-              Latest headlines from the world of
-              <span class="accent">forex, markets &amp; geopolitics</span>.
+            <h3>MoneyMind <span>News</span></h3>
+            <p class="news-sub">
+              Latest headlines from the world of <span>forex, markets &amp; geopolitics</span>.
             </p>
           </div>
 
           <div class="news-controls">
-            <select id="newsCategory">
-              <option value="forex">Forex / Macro</option>
-              <option value="stocks">US Stocks</option>
-              <option value="crypto">Crypto</option>
-            </select>
-            <button id="newsRefreshBtn" type="button">Refresh</button>
+            <div class="select-wrapper">
+              <select id="newsTopicSelect">
+                <option value="forex">Forex / Macro</option>
+                <option value="stocks">US Stocks</option>
+                <option value="crypto">Crypto</option>
+              </select>
+              <span class="select-arrow"></span>
+            </div>
+
+            <button id="newsRefreshBtn" class="news-refresh-btn">Refresh</button>
           </div>
         </div>
 

@@ -1,20 +1,31 @@
 const API_BASE = "http://localhost:3001";
 
-const newsCategorySelect = document.getElementById("newsCategory");
-const newsRefreshBtn = document.getElementById("newsRefreshBtn");
-const newsListEl = document.getElementById("newsList");
-const newsStatusEl = document.getElementById("newsStatus");
+let topicSelect;
+let refreshBtn;
+let newsListEl;
+let newsStatusEl;
+let topicLabelSpan;
+
+const TOPIC_LABELS = {
+  forex: "forex, markets & geopolitics",
+  stocks: "US stocks & indices",
+  crypto: "crypto & blockchain",
+};
 
 function timeAgo(isoString) {
+  if (!isoString) return "";
   const d = new Date(isoString);
   if (isNaN(d)) return "";
+
   const diffMs = Date.now() - d.getTime();
   const diffMin = Math.floor(diffMs / 60000);
 
   if (diffMin < 1) return "Just now";
   if (diffMin < 60) return `${diffMin} min ago`;
+
   const diffH = Math.floor(diffMin / 60);
   if (diffH < 24) return `${diffH}h ago`;
+
   const diffD = Math.floor(diffH / 24);
   return `${diffD}d ago`;
 }
@@ -24,18 +35,15 @@ function renderNews(articles) {
   const frag = document.createDocumentFragment();
 
   articles.forEach((article) => {
-    const item = document.createElement("article");
+    const item = document.createElement("div");
     item.className = "news-item";
 
-    const h4 = document.createElement("h4");
-    h4.textContent = article.title || "Untitled";
-    item.appendChild(h4);
-
-    if (article.summary) {
-      const p = document.createElement("p");
-      p.textContent = article.summary;
-      item.appendChild(p);
-    }
+    const title = document.createElement("a");
+    title.href = article.url || "#";
+    title.target = "_blank";
+    title.rel = "noopener noreferrer";
+    title.textContent = article.title || "Untitled article";
+    item.appendChild(title);
 
     const meta = document.createElement("div");
     meta.className = "news-meta";
@@ -50,13 +58,11 @@ function renderNews(articles) {
     meta.appendChild(timeSpan);
     item.appendChild(meta);
 
-    if (article.url) {
-      const a = document.createElement("a");
-      a.href = article.url;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.textContent = "Open article";
-      item.appendChild(a);
+    if (article.summary) {
+      const p = document.createElement("p");
+      p.className = "news-desc";
+      p.textContent = article.summary;
+      item.appendChild(p);
     }
 
     frag.appendChild(item);
@@ -65,10 +71,17 @@ function renderNews(articles) {
   newsListEl.appendChild(frag);
 }
 
-async function loadNews() {
-  if (!newsListEl) return;
+function updateTopicLabel(category) {
+  if (!topicLabelSpan) return;
+  const label = TOPIC_LABELS[category] || "markets & geopolitics";
+  topicLabelSpan.textContent = label;
+}
 
-  const category = newsCategorySelect?.value || "forex";
+async function loadNews() {
+  if (!newsListEl || !newsStatusEl) return;
+
+  const category = topicSelect?.value || "forex";
+  updateTopicLabel(category);
 
   newsStatusEl.textContent = "Loading latest news...";
   newsListEl.innerHTML = "";
@@ -79,13 +92,14 @@ async function loadNews() {
     );
     const data = await res.json();
 
-    if (!data.success) {
-      newsStatusEl.textContent = data.message || "Could not load news.";
+    if (!res.ok || !data.success) {
+      newsStatusEl.textContent =
+        data.message || "Could not load news from server.";
       return;
     }
 
     if (!data.articles || !data.articles.length) {
-      newsStatusEl.textContent = "No news available at this moment.";
+      newsStatusEl.textContent = "No news available for this topic right now.";
       return;
     }
 
@@ -98,8 +112,19 @@ async function loadNews() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (!newsListEl) return;
+  topicSelect = document.getElementById("newsTopicSelect");
+  refreshBtn = document.getElementById("newsRefreshBtn");
+  newsListEl = document.getElementById("newsList");
+  newsStatusEl = document.getElementById("newsStatus");
+  topicLabelSpan = document.querySelector(".news-sub span");
+
+  if (!newsListEl || !newsStatusEl) {
+    console.warn("News bot: elements not found in DOM");
+    return;
+  }
+
   loadNews();
-  newsRefreshBtn?.addEventListener("click", loadNews);
-  newsCategorySelect?.addEventListener("change", loadNews);
+
+  refreshBtn?.addEventListener("click", loadNews);
+  topicSelect?.addEventListener("change", loadNews);
 });
