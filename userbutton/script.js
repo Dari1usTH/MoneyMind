@@ -6,7 +6,7 @@ if (!username) {
   userNameDisplay.textContent = "Guest";
   logoutBtn.textContent = "Login";
   logoutBtn.addEventListener("click", () => {
-    window.location.href = "login/login.html";
+    window.location.href = "../login/login.html";
   });
 } else {
   userNameDisplay.textContent = username;

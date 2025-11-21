@@ -279,7 +279,6 @@ async function handleCreateAccount(e) {
     accountType: formData.get("accountType"),
     currency: formData.get("currency"),
     initialBalance: Number(formData.get("initialBalance") || 0),
-    setAsDefault: formData.get("setAsDefault") === "on",
   };
 
   if (!payload.accountName) {

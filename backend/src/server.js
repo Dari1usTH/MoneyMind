@@ -887,7 +887,16 @@ app.get('/api/accounts', authMiddleware, async (req, res) => {
     let rows;
     try {
       const [data] = await conn.execute(
-        `SELECT id, account_name, account_type, currency, balance, is_default, created_at, updated_at
+        `SELECT
+           id,
+           account_name,
+           account_type,
+           currency,
+           balance,
+           initial_balance,
+           is_default,
+           created_at,
+           updated_at
          FROM accounts
          WHERE user_id = ?
          ORDER BY created_at ASC`,
@@ -948,7 +957,6 @@ app.post('/api/accounts', authMiddleware, async (req, res) => {
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
-
       if (setAsDefault) {
         await conn.execute(
           'UPDATE accounts SET is_default = 0 WHERE user_id = ?',
@@ -957,13 +965,38 @@ app.post('/api/accounts', authMiddleware, async (req, res) => {
       }
 
       const [result] = await conn.execute(
-        `INSERT INTO accounts (user_id, account_name, account_type, currency, balance, is_default)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [userId, accountName, safeAccountType, currency, balance, setAsDefault ? 1 : 0]
+        `INSERT INTO accounts (
+           user_id,
+           account_name,
+           account_type,
+           currency,
+           balance,
+           initial_balance,
+           is_default
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          userId,
+          accountName,
+          safeAccountType,
+          currency,
+          balance,     
+          balance,       
+          setAsDefault ? 1 : 0,
+        ]
       );
 
       const [rows] = await conn.execute(
-        `SELECT id, account_name, account_type, currency, balance, is_default, created_at, updated_at
+        `SELECT
+           id,
+           account_name,
+           account_type,
+           currency,
+           balance,
+           initial_balance,
+           is_default,
+           created_at,
+           updated_at
          FROM accounts
          WHERE id = ? AND user_id = ?
          LIMIT 1`,
