@@ -5,6 +5,8 @@ let currentUser = null;
 let accounts = [];
 let selectedAccount = null;
 
+let searchResults = [];
+
 let currentInstrument = null;
 let currentTimeframe = "1D";
 
@@ -228,8 +230,24 @@ function loadWatchlistFromStorage() {
       return;
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) watchlist = parsed;
-    else watchlist = [];
+
+    if (Array.isArray(parsed)) {
+      if (parsed.length && typeof parsed[0] === "string") {
+        watchlist = parsed.map(function (symbol) {
+          return {
+            symbol: symbol,
+            apiSymbol: symbol,
+            name: symbol,
+            type: "stocks",
+            currency: "USD",
+          };
+        });
+      } else {
+        watchlist = parsed;
+      }
+    } else {
+      watchlist = [];
+    }
   } catch (err) {
     console.error("loadWatchlistFromStorage error:", err);
     watchlist = [];
@@ -288,10 +306,63 @@ function initMarketTabs() {
 function initSearch() {
   const searchInput = document.getElementById("instrumentSearch");
   if (!searchInput) return;
+
+  let searchTimeout = null;
+
   searchInput.addEventListener("input", function () {
-    renderMarkets();
-    renderWatchlist();
+    const term = searchInput.value.trim();
+
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(function () {
+      performInstrumentSearch(term);
+    }, 300);
   });
+}
+
+async function performInstrumentSearch(term) {
+  const listEl = document.getElementById("instrumentList");
+
+  if (!term || term.length < 2) {
+    searchResults = [];
+    if (listEl) {
+      listEl.innerHTML =
+        '<li class="instrument-empty">Scrie cel puțin 2 caractere (ex: <b>BTCUSD</b>, <b>AAPL</b>, <b>EURUSD</b>).</li>';
+    }
+    return;
+  }
+
+  if (listEl) {
+    listEl.innerHTML = '<li class="instrument-empty">Caut...</li>';
+  }
+
+  const market = getActiveMarketFilter();
+
+  try {
+    const res = await fetch(
+      API_BASE +
+        "/api/markets/search?q=" +
+        encodeURIComponent(term) +
+        "&type=" +
+        encodeURIComponent(market),
+      { credentials: "include" }
+    );
+
+    if (!res.ok) {
+      throw new Error("HTTP " + res.status);
+    }
+
+    const payload = await res.json();
+    if (!payload.success) {
+      throw new Error(payload.message || "Search failed");
+    }
+
+    searchResults = Array.isArray(payload.results) ? payload.results : [];
+  } catch (err) {
+    console.error("performInstrumentSearch error:", err);
+    searchResults = [];
+  }
+
+  renderMarkets();
 }
 
 function getActiveMarketFilter() {
@@ -325,14 +396,31 @@ function renderMarkets() {
   if (!listEl) return;
   listEl.innerHTML = "";
 
-  const filtered = filterInstruments(INSTRUMENTS);
+  let base = searchResults.slice();
+
+  if (!base.length) {
+    listEl.innerHTML =
+      '<li class="instrument-empty">Niciun rezultat încă. Caută mai sus un simbol sau nume.</li>';
+    return;
+  }
+
+  const filtered = filterInstruments(base);
+
+  if (!filtered.length) {
+    listEl.innerHTML =
+      '<li class="instrument-empty">Nimic nu se potrivește cu filtrele selectate.</li>';
+    return;
+  }
 
   filtered.forEach(function (inst) {
     const li = document.createElement("li");
     li.className = "instrument-item";
     li.setAttribute("data-symbol", inst.symbol);
 
-    const isStarred = watchlist.indexOf(inst.symbol) !== -1;
+    const isStarred =
+      watchlist.findIndex(function (w) {
+        return w.symbol === inst.symbol;
+      }) !== -1;
 
     li.innerHTML =
       '<button class="star-btn ' +
@@ -341,27 +429,22 @@ function renderMarkets() {
       inst.symbol +
       '">' +
       (isStarred ? "★" : "☆") +
-      '</button>' +
+      "</button>" +
       '<div class="instrument-main">' +
       '<span class="instrument-symbol">' +
       inst.symbol +
       "</span>" +
       '<span class="instrument-name">' +
       inst.name +
+      (inst.exchange ? " · " + inst.exchange : "") +
       "</span>" +
       "</div>" +
       '<div class="instrument-right">' +
       '<div class="instrument-price">' +
-      inst.last.toFixed(2) +
+      (typeof inst.last === "number" ? inst.last.toFixed(2) : "-") +
       " " +
-      inst.currency +
+      (inst.currency || "") +
       "</div>" +
-      '<div class="instrument-change ' +
-      (inst.change >= 0 ? "positive" : "negative") +
-      '">' +
-      (inst.change >= 0 ? "+" : "") +
-      inst.change.toFixed(2) +
-      "%</div>" +
       "</div>";
 
     li.addEventListener("click", function (e) {
@@ -373,14 +456,14 @@ function renderMarkets() {
       ) {
         return;
       }
-      selectInstrument(inst.symbol);
+      selectInstrument(inst);
     });
 
     const starBtn = li.querySelector(".star-btn");
     if (starBtn) {
       starBtn.addEventListener("click", function (e) {
         e.stopPropagation();
-        toggleWatchlist(inst.symbol);
+        toggleWatchlist(inst);
       });
     }
 
@@ -394,14 +477,18 @@ function renderWatchlist() {
   if (!listEl) return;
   listEl.innerHTML = "";
 
-  const base = INSTRUMENTS.filter(function (i) {
-    return watchlist.indexOf(i.symbol) !== -1;
-  });
+  const base = watchlist.slice();
   const filtered = filterInstruments(base);
 
   if (countEl) {
     countEl.textContent =
       base.length + " item" + (base.length === 1 ? "" : "s");
+  }
+
+  if (!filtered.length) {
+    listEl.innerHTML =
+      '<li class="instrument-empty">Niciun favorit încă. Apasă pe ⭐ în lista din stânga.</li>';
+    return;
   }
 
   filtered.forEach(function (inst) {
@@ -419,20 +506,8 @@ function renderWatchlist() {
       "</span>" +
       '<span class="instrument-name">' +
       inst.name +
+      (inst.exchange ? " · " + inst.exchange : "") +
       "</span>" +
-      "</div>" +
-      '<div class="instrument-right">' +
-      '<div class="instrument-price">' +
-      inst.last.toFixed(2) +
-      " " +
-      inst.currency +
-      "</div>" +
-      '<div class="instrument-change ' +
-      (inst.change >= 0 ? "positive" : "negative") +
-      '">' +
-      (inst.change >= 0 ? "+" : "") +
-      inst.change.toFixed(2) +
-      "%</div>" +
       "</div>";
 
     li.addEventListener("click", function (e) {
@@ -444,14 +519,14 @@ function renderWatchlist() {
       ) {
         return;
       }
-      selectInstrument(inst.symbol);
+      selectInstrument(inst);
     });
 
     const starBtn = li.querySelector(".star-btn");
     if (starBtn) {
       starBtn.addEventListener("click", function (e) {
         e.stopPropagation();
-        toggleWatchlist(inst.symbol);
+        toggleWatchlist(inst);
       });
     }
 
@@ -459,13 +534,19 @@ function renderWatchlist() {
   });
 }
 
-function toggleWatchlist(symbol) {
-  const idx = watchlist.indexOf(symbol);
+function toggleWatchlist(inst) {
+  if (!inst || !inst.symbol) return;
+
+  const idx = watchlist.findIndex(function (w) {
+    return w.symbol === inst.symbol;
+  });
+
   if (idx === -1) {
-    watchlist.push(symbol);
+    watchlist.push(inst);
   } else {
     watchlist.splice(idx, 1);
   }
+
   saveWatchlistToStorage();
   renderMarkets();
   renderWatchlist();
@@ -504,7 +585,7 @@ function selectInstrument(symbol) {
     placeBtn.disabled = false;
   }
 
-  renderChart();
+  renderChartFromApi();
 }
 
 function generateChartData(basePrice, points) {
@@ -523,11 +604,14 @@ function generateChartData(basePrice, points) {
   return { labels: labels, data: data };
 }
 
-function renderChart() {
+function renderSimulatedChart() {
   const canvas = document.getElementById("priceChart");
   if (!canvas || !currentInstrument) return;
 
-  const basePrice = currentInstrument.last;
+  const basePrice =
+    typeof currentInstrument.last === "number"
+      ? currentInstrument.last
+      : 100;
   let points = 60;
 
   if (currentTimeframe === "1W") points = 80;
@@ -562,9 +646,7 @@ function renderChart() {
         legend: { display: false },
       },
       scales: {
-        x: {
-          display: false,
-        },
+        x: { display: false },
         y: {
           ticks: {
             color: "#e6f7ff",
@@ -573,6 +655,104 @@ function renderChart() {
       },
     },
   });
+}
+
+function renderChartFromApi() {
+  const canvas = document.getElementById("priceChart");
+  const chartSubtitle = document.getElementById("chartSubtitle");
+  if (!canvas || !currentInstrument) return;
+
+  const apiSymbol =
+    currentInstrument.apiSymbol || currentInstrument.symbol;
+
+  if (chartSubtitle) {
+    chartSubtitle.textContent = "Loading real market data...";
+  }
+
+  const url =
+    API_BASE +
+    "/api/markets/ohlc?symbol=" +
+    encodeURIComponent(apiSymbol) +
+    "&timeframe=" +
+    encodeURIComponent(currentTimeframe);
+
+  fetch(url, { credentials: "include" })
+    .then(function (res) {
+      if (!res.ok) {
+        throw new Error("HTTP " + res.status);
+      }
+      return res.json();
+    })
+    .then(function (payload) {
+      if (!payload.success || !payload.candles || !payload.candles.length) {
+        throw new Error("Invalid market data payload");
+      }
+
+      const labels = payload.candles.map(function (c) {
+        return c.time;
+      });
+      const data = payload.candles.map(function (c) {
+        return c.close;
+      });
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(canvas, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: currentInstrument.symbol + " price",
+              data: data,
+              fill: false,
+              tension: 0.25,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            x: { display: false },
+            y: {
+              ticks: {
+                color: "#e6f7ff",
+              },
+            },
+          },
+        },
+      });
+
+      if (typeof payload.lastPrice === "number") {
+        currentInstrument.last = payload.lastPrice;
+      }
+
+      if (chartSubtitle) {
+        const lastPrice =
+          typeof currentInstrument.last === "number"
+            ? currentInstrument.last.toFixed(2)
+            : "-";
+        chartSubtitle.textContent =
+          "Real chart · Last price: " +
+          lastPrice +
+          " " +
+          (currentInstrument.currency || "");
+      }
+    })
+    .catch(function (err) {
+      console.error("Market data error:", err);
+      if (chartSubtitle) {
+        chartSubtitle.textContent =
+          "Nu s-au putut încărca datele reale. Afișez un grafic simulat.";
+      }
+      renderSimulatedChart();
+    });
 }
 
 function initTimeframeButtons() {
@@ -594,7 +774,7 @@ function initTimeframeButtons() {
     target.classList.add("active");
 
     if (currentInstrument) {
-      renderChart();
+      renderChartFromApi();
     }
   });
 }

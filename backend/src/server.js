@@ -1278,6 +1278,96 @@ app.patch('/api/accounts/:id/balance', authMiddleware, async (req, res) => {
   }
 });
 
+app.get('/api/markets/search', authMiddleware, async (req, res) => {
+  try {
+    const query = (req.query.q || req.query.query || '').trim();
+    const typeFilter = (req.query.type || '').toLowerCase(); 
+
+    if (!query || query.length < 2) {
+      return res.json({
+        success: true,
+        results: [],
+      });
+    }
+
+    if (!MARKET_API_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: 'Market data API is not configured (MARKET_API_KEY missing).',
+      });
+    }
+
+    const url =
+      `${MARKET_API_BASE}/symbol_search?symbol=` +
+      encodeURIComponent(query) +
+      `&apikey=${MARKET_API_KEY}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      const text = await response.text();
+      console.error('symbol_search upstream error:', response.status, text);
+      return res.status(502).json({
+        success: false,
+        message: 'Upstream market search failed.',
+      });
+    }
+
+    const raw = await response.json();
+    const data = Array.isArray(raw.data) ? raw.data : [];
+
+    const results = data
+      .map((item) => {
+        const rawSymbol = item.symbol || '';      
+        const apiSymbol = rawSymbol;
+        const compactSymbol = rawSymbol.replace(/[^A-Z0-9]/gi, ''); 
+
+        const instrumentName = item.instrument_name || item.name || rawSymbol;
+
+        let inferredType = (item.instrument_type || item.type || '').toLowerCase();
+        let type = 'stocks';
+        if (inferredType.includes('crypto')) type = 'crypto';
+        else if (
+          inferredType.includes('fx') ||
+          inferredType.includes('forex') ||
+          inferredType.includes('currency')
+        ) {
+          type = 'forex';
+        } else if (rawSymbol.includes('/')) {
+          type = 'forex';
+        }
+
+        const baseCurrency =
+          item.currency ||
+          (rawSymbol.includes('/') ? rawSymbol.split('/')[1] : null) ||
+          'USD';
+
+        return {
+          symbol: compactSymbol || rawSymbol, 
+          apiSymbol,                         
+          name: instrumentName,
+          type,                               
+          currency: baseCurrency,
+          exchange: item.exchange || null,
+        };
+      })
+      .filter((inst) => {
+        if (!typeFilter || typeFilter === 'all') return true;
+        return inst.type === typeFilter;
+      })
+      .slice(0, 30);
+
+    return res.json({
+      success: true,
+      results,
+    });
+  } catch (err) {
+    console.error('GET /api/markets/search error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while searching markets.',
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
-
