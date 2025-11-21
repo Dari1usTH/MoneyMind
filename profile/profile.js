@@ -185,7 +185,6 @@ function renderAccounts() {
       <div class="account-name">${account.account_name}</div>
       <div class="account-meta">${account.account_type.toUpperCase()} • ${account.currency}</div>
       <div class="account-balance">${balance.toFixed(2)} ${account.currency}</div>
-      ${account.is_default ? '<div class="account-meta">Default</div>' : ""}
     `;
 
     card.addEventListener("click", async () => {

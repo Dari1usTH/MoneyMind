@@ -1,11 +1,10 @@
-chat intre useri
+
 
 -------------------to do --------------
-securitate: campuri injectibile , email , parola buna
+
 ---------------- bug ---------------------
 
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-fix My account style bug 
-added initial_balance in database and now it will be the initial_balance on the account that you are making 
+now to showing anymore Default Account in profile at MyAccount
