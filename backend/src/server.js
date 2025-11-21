@@ -890,7 +890,7 @@ app.get('/api/accounts', authMiddleware, async (req, res) => {
         `SELECT id, account_name, account_type, currency, balance, is_default, created_at, updated_at
          FROM accounts
          WHERE user_id = ?
-         ORDER BY is_default DESC, created_at ASC`,
+         ORDER BY created_at ASC`,
         [userId]
       );
       rows = data;
@@ -1033,7 +1033,7 @@ app.patch('/api/accounts/:id/default', authMiddleware, async (req, res) => {
         `SELECT id, account_name, account_type, currency, balance, is_default, created_at, updated_at
          FROM accounts
          WHERE user_id = ?
-         ORDER BY is_default DESC, created_at ASC`,
+         ORDER BY created_at ASC`,
         [userId]
       );
 

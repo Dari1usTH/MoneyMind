@@ -240,28 +240,34 @@ function renderAccounts() {
 function renderSelectedAccount() {
   const acc = accounts.find((a) => a.id === selectedAccountId);
 
+  const nameEl = document.getElementById("detailName");
+  const typeEl = document.getElementById("detailType");
+  const currencyEl = document.getElementById("detailCurrency");
+  const balanceEl = document.getElementById("detailBalance");
+  const createdEl = document.getElementById("detailCreatedAt");
+
+  if (!nameEl || !typeEl || !currencyEl || !balanceEl || !createdEl) return;
+
   if (!acc) {
-    document.getElementById("detailName").textContent = "-";
-    document.getElementById("detailType").textContent = "-";
-    document.getElementById("detailCurrency").textContent = "-";
-    document.getElementById("detailBalance").textContent = "-";
-    document.getElementById("detailDefault").textContent = "-";
-    document.getElementById("detailCreatedAt").textContent = "-";
+    nameEl.textContent = "-";
+    typeEl.textContent = "-";
+    currencyEl.textContent = "-";
+    balanceEl.textContent = "-";
+    createdEl.textContent = "-";
     return;
   }
 
   const balance = Number(acc.balance || 0);
 
-  document.getElementById("detailName").textContent = acc.account_name;
-  document.getElementById("detailType").textContent = acc.account_type;
-  document.getElementById("detailCurrency").textContent = acc.currency;
-  document.getElementById("detailBalance").textContent =
-    balance.toFixed(2) + " " + acc.currency;
-  document.getElementById("detailDefault").textContent = acc.is_default ? "Yes" : "No";
-  document.getElementById("detailCreatedAt").textContent = acc.created_at
+  nameEl.textContent = acc.account_name;
+  typeEl.textContent = acc.account_type;
+  currencyEl.textContent = acc.currency;
+  balanceEl.textContent = balance.toFixed(2) + " " + acc.currency;
+  createdEl.textContent = acc.created_at
     ? new Date(acc.created_at).toLocaleString()
     : "-";
 }
+
 
 async function handleCreateAccount(e) {
   e.preventDefault();
