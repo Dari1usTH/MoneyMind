@@ -76,7 +76,23 @@
               <span>Watchlist</span>
               <span id="watchlistCount" class="muted-small">0 items</span>
             </div>
-            <ul id="watchlistList" class="instrument-list"></ul>
+
+            <div class="watchlist-groups">
+              <div class="watchlist-group">
+                <div class="watchlist-header-sub">Crypto</div>
+                <ul id="watchlistCrypto" class="instrument-list"></ul>
+              </div>
+
+              <div class="watchlist-group">
+                <div class="watchlist-header-sub">Forex</div>
+                <ul id="watchlistForex" class="instrument-list"></ul>
+              </div>
+
+              <div class="watchlist-group">
+                <div class="watchlist-header-sub">Stocks</div>
+                <ul id="watchlistStocks" class="instrument-list"></ul>
+              </div>
+            </div>
           </div>
 
           <div class="all-markets-section">
@@ -96,6 +112,11 @@
               </p>
             </div>
             <div class="timeframe-controls">
+              <button class="tf-btn" data-tf="1m">1m</button>
+              <button class="tf-btn" data-tf="15m">15m</button>
+              <button class="tf-btn" data-tf="30m">30m</button>
+              <button class="tf-btn" data-tf="1h">1H</button>
+              <button class="tf-btn" data-tf="4h">4H</button>
               <button class="tf-btn active" data-tf="1D">1D</button>
               <button class="tf-btn" data-tf="1W">1W</button>
               <button class="tf-btn" data-tf="1M">1M</button>
@@ -227,6 +248,31 @@
           © 2025 <span>MoneyMind</span> • Made by Darius
         </p>
       </footer>
+
+      <div id="watchlistOverlay" class="wishlist-overlay"></div>
+      <div id="watchlistCategoryPanel" class="wishlist-panel">
+        <div class="wishlist-panel-inner">
+          <h4>Add to watchlist</h4>
+          <p class="muted-small" id="wishlistPanelInstrumentLabel"></p>
+
+          <div class="wishlist-category-buttons">
+            <button type="button" class="wishlist-cat-btn" data-type="crypto">
+              Crypto
+            </button>
+            <button type="button" class="wishlist-cat-btn" data-type="forex">
+              Forex
+            </button>
+            <button type="button" class="wishlist-cat-btn" data-type="stocks">
+              Stocks
+            </button>
+          </div>
+
+          <div class="wishlist-panel-actions">
+            <button type="button" id="wishlistCancelBtn">Cancel</button>
+          </div>
+        </div>
+      </div>
+      
     </main>
   </body>
 </html>

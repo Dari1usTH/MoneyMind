@@ -1369,5 +1369,156 @@ app.get('/api/markets/search', authMiddleware, async (req, res) => {
   }
 });
 
+app.get('/api/watchlist', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const conn = await pool.getConnection();
+    let rows;
+    try {
+      const [data] = await conn.execute(
+        `SELECT
+           id,
+           symbol,
+           api_symbol,
+           name,
+           instrument_type,
+           currency,
+           exchange,
+           created_at
+         FROM watchlists
+         WHERE user_id = ?
+         ORDER BY created_at ASC`,
+        [userId]
+      );
+      rows = data;
+    } finally {
+      conn.release();
+    }
+
+    return res.json({
+      success: true,
+      items: rows,
+    });
+  } catch (err) {
+    console.error('GET /api/watchlist error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not load watchlist.',
+    });
+  }
+});
+
+app.post('/api/watchlist', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const {
+      symbol,
+      apiSymbol,
+      name,
+      type,
+      currency = null,
+      exchange = null,
+    } = req.body || {};
+
+    if (!symbol || !apiSymbol || !name) {
+      return res.status(400).json({
+        success: false,
+        message: 'symbol, apiSymbol and name are required.',
+      });
+    }
+
+    const allowedTypes = ['crypto', 'forex', 'stocks'];
+    const safeType = allowedTypes.includes(type) ? type : 'stocks';
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.execute(
+        `INSERT INTO watchlists (
+           user_id,
+           symbol,
+           api_symbol,
+           name,
+           instrument_type,
+           currency,
+           exchange
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           api_symbol = VALUES(api_symbol),
+           name = VALUES(name),
+           instrument_type = VALUES(instrument_type),
+           currency = VALUES(currency),
+           exchange = VALUES(exchange)`,
+        [userId, symbol, apiSymbol, name, safeType, currency, exchange]
+      );
+
+      const [rows] = await conn.execute(
+        `SELECT
+           id,
+           symbol,
+           api_symbol,
+           name,
+           instrument_type,
+           currency,
+           exchange,
+           created_at
+         FROM watchlists
+         WHERE user_id = ? AND symbol = ?
+         LIMIT 1`,
+        [userId, symbol]
+      );
+
+      return res.status(201).json({
+        success: true,
+        item: rows[0],
+      });
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('POST /api/watchlist error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not update watchlist.',
+    });
+  }
+});
+
+app.delete('/api/watchlist/:symbol', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const symbol = req.params.symbol;
+
+    if (!symbol) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing symbol.',
+      });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      const [result] = await conn.execute(
+        'DELETE FROM watchlists WHERE user_id = ? AND symbol = ?',
+        [userId, symbol]
+      );
+
+      return res.json({
+        success: true,
+        removed: result.affectedRows > 0,
+      });
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('DELETE /api/watchlist/:symbol error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not remove from watchlist.',
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));

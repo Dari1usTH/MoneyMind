@@ -28,3 +28,22 @@ CREATE TABLE accounts (
     INDEX idx_accounts_user (user_id),
     INDEX idx_accounts_default (user_id, is_default)
 );
+
+CREATE TABLE watchlists (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    symbol VARCHAR(50) NOT NULL,
+    api_symbol VARCHAR(100) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    instrument_type ENUM('crypto', 'forex', 'stocks') NOT NULL,
+    currency VARCHAR(10) DEFAULT NULL,
+    exchange VARCHAR(50) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_watchlists_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE,
+
+    UNIQUE KEY uniq_user_symbol (user_id, symbol),
+    INDEX idx_watchlists_user (user_id)
+);

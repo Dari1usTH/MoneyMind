@@ -2,9 +2,17 @@
 
 -------------------to do --------------
 
+user trebuie sa fie logat
+calculator dobanda compusa
+
+
+
+xoy grafic 
+
+
 ---------------- bug ---------------------
 
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-now to showing anymore Default Account in profile at MyAccount
+fix chart now showing

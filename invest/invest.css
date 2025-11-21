@@ -90,6 +90,20 @@
   margin-top: 8px;
 }
 
+.watchlist-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.watchlist-header-sub {
+  font-size: 11px;
+  color: #9fb6c7;
+  margin: 2px 0;
+}
+
+
 .watchlist-header {
   display: flex;
   align-items: center;
@@ -198,6 +212,7 @@
 
 .timeframe-controls {
   display: flex;
+  flex-wrap: wrap;  
   gap: 6px;
   align-items: center;
 }
@@ -393,4 +408,83 @@
   padding: 8px 4px;
   font-size: 12px;
   color: #9ca3af; 
+}
+
+.wishlist-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 50;
+  display: none;
+}
+
+.wishlist-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(8, 26, 40, 0.96);
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(0, 255, 198, 0.4);
+  z-index: 51;
+  width: 280px;
+  max-width: 90vw;
+  display: none;
+}
+
+.wishlist-overlay.visible,
+.wishlist-panel.visible {
+  display: block;
+}
+
+.wishlist-panel-inner h4 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.wishlist-category-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+
+.wishlist-cat-btn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 255, 198, 0.4);
+  background: rgba(0, 0, 0, 0.4);
+  color: #e6f7ff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.wishlist-cat-btn.active,
+.wishlist-cat-btn:hover {
+  background: radial-gradient(
+    circle at top left,
+    rgba(0, 255, 198, 0.25),
+    rgba(0, 0, 0, 0.8)
+  );
+  box-shadow: 0 0 12px rgba(0, 255, 198, 0.6);
+  border-color: rgba(0, 255, 198, 0.9);
+}
+
+.wishlist-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+#wishlistCancelBtn {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: #e6f7ff;
+  font-size: 12px;
+  cursor: pointer;
 }

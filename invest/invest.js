@@ -6,6 +6,7 @@ let accounts = [];
 let selectedAccount = null;
 
 let searchResults = [];
+let pendingWatchlistInstrument = null;
 
 let currentInstrument = null;
 let currentTimeframe = "1D";
@@ -110,13 +111,14 @@ async function initInvestPage() {
   await loadMe();
   await loadAccounts();
 
-  loadWatchlistFromStorage();
+  await loadWatchlistFromServer();
   loadPositionsFromStorage();
 
   initMarketTabs();
   initSearch();
   initOrderForm();
   initTimeframeButtons();
+  initWatchlistPanel();
 
   renderMarkets();
   renderWatchlist();
@@ -178,6 +180,96 @@ async function loadAccounts() {
     }
   } catch (err) {
     console.error("loadAccounts error:", err);
+  }
+}
+
+async function loadWatchlistFromServer() {
+  if (!currentUser) {
+    watchlist = [];
+    return;
+  }
+  try {
+    const res = await fetch(API_BASE + "/api/watchlist", {
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      throw new Error("HTTP " + res.status);
+    }
+
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.items)) {
+      throw new Error("Invalid watchlist payload");
+    }
+
+    watchlist = data.items.map(function (row) {
+      return {
+        symbol: row.symbol,
+        apiSymbol: row.api_symbol || row.symbol,
+        name: row.name,
+        type: row.instrument_type || "stocks",
+        currency: row.currency || "USD",
+        exchange: row.exchange || null,
+      };
+    });
+
+    saveWatchlistToStorage();
+  } catch (err) {
+    console.error("loadWatchlistFromServer error:", err);
+    loadWatchlistFromStorage();
+  }
+}
+
+async function addInstrumentToWatchlistOnServer(inst) {
+  if (!currentUser) return;
+
+  try {
+    const res = await fetch(API_BASE + "/api/watchlist", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        symbol: inst.symbol,
+        apiSymbol: inst.apiSymbol || inst.symbol,
+        name: inst.name || inst.symbol,
+        type: inst.type || "stocks",
+        currency: inst.currency || null,
+        exchange: inst.exchange || null,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      console.error("addInstrumentToWatchlistOnServer failed:", data);
+    }
+
+    return data.item || null;
+  } catch (err) {
+    console.error("addInstrumentToWatchlistOnServer error:", err);
+    return null;
+  }
+}
+
+async function removeInstrumentFromWatchlistOnServer(symbol) {
+  if (!currentUser) return;
+
+  try {
+    const res = await fetch(
+      API_BASE + "/api/watchlist/" + encodeURIComponent(symbol),
+      {
+        method: "DELETE",
+        credentials: "include",
+      }
+    );
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      console.error("removeInstrumentFromWatchlistOnServer failed:", data);
+    }
+  } catch (err) {
+    console.error("removeInstrumentFromWatchlistOnServer error:", err);
   }
 }
 
@@ -326,13 +418,13 @@ async function performInstrumentSearch(term) {
     searchResults = [];
     if (listEl) {
       listEl.innerHTML =
-        '<li class="instrument-empty">Scrie cel puțin 2 caractere (ex: <b>BTCUSD</b>, <b>AAPL</b>, <b>EURUSD</b>).</li>';
+        '<li class="instrument-empty">Type at least 2 characters (e.g. <b>BTCUSD</b>, <b>AAPL</b>, <b>EURUSD</b>).</li>';
     }
     return;
   }
 
   if (listEl) {
-    listEl.innerHTML = '<li class="instrument-empty">Caut...</li>';
+    listEl.innerHTML = '<li class="instrument-empty">Searching...</li>';
   }
 
   const market = getActiveMarketFilter();
@@ -400,7 +492,7 @@ function renderMarkets() {
 
   if (!base.length) {
     listEl.innerHTML =
-      '<li class="instrument-empty">Niciun rezultat încă. Caută mai sus un simbol sau nume.</li>';
+      '<li class="instrument-empty">No results yet. Search above for a symbol or name.</li>';
     return;
   }
 
@@ -408,7 +500,7 @@ function renderMarkets() {
 
   if (!filtered.length) {
     listEl.innerHTML =
-      '<li class="instrument-empty">Nimic nu se potrivește cu filtrele selectate.</li>';
+      '<li class="instrument-empty">Nothing matches the selected filters.</li>';
     return;
   }
 
@@ -472,65 +564,164 @@ function renderMarkets() {
 }
 
 function renderWatchlist() {
-  const listEl = document.getElementById("watchlistList");
+  const cryptoEl = document.getElementById("watchlistCrypto");
+  const forexEl = document.getElementById("watchlistForex");
+  const stocksEl = document.getElementById("watchlistStocks");
   const countEl = document.getElementById("watchlistCount");
-  if (!listEl) return;
-  listEl.innerHTML = "";
 
-  const base = watchlist.slice();
-  const filtered = filterInstruments(base);
+  if (!cryptoEl || !forexEl || !stocksEl) return;
 
+  cryptoEl.innerHTML = "";
+  forexEl.innerHTML = "";
+  stocksEl.innerHTML = "";
+
+  const total = watchlist.length;
   if (countEl) {
     countEl.textContent =
-      base.length + " item" + (base.length === 1 ? "" : "s");
+      total + " item" + (total === 1 ? "" : "s");
   }
 
-  if (!filtered.length) {
-    listEl.innerHTML =
-      '<li class="instrument-empty">Niciun favorit încă. Apasă pe ⭐ în lista din stânga.</li>';
-    return;
-  }
+  const groups = { crypto: [], forex: [], stocks: [] };
 
-  filtered.forEach(function (inst) {
-    const li = document.createElement("li");
-    li.className = "instrument-item";
-    li.setAttribute("data-symbol", inst.symbol);
+  watchlist.forEach(function (inst) {
+    const t = (inst.type || "stocks").toLowerCase();
+    if (!groups[t]) {
+      groups[t] = [];
+    }
+    groups[t].push(inst);
+  });
 
-    li.innerHTML =
-      '<button class="star-btn active" type="button" data-symbol="' +
-      inst.symbol +
-      '">★</button>' +
-      '<div class="instrument-main">' +
-      '<span class="instrument-symbol">' +
-      inst.symbol +
-      "</span>" +
-      '<span class="instrument-name">' +
-      inst.name +
-      (inst.exchange ? " · " + inst.exchange : "") +
-      "</span>" +
-      "</div>";
-
-    li.addEventListener("click", function (e) {
-      const target = e.target;
-      if (
-        target &&
-        target.classList &&
-        target.classList.contains("star-btn")
-      ) {
-        return;
-      }
-      selectInstrument(inst);
-    });
-
-    const starBtn = li.querySelector(".star-btn");
-    if (starBtn) {
-      starBtn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        toggleWatchlist(inst);
-      });
+  function renderGroup(listEl, items, emptyText) {
+    if (!items.length) {
+      listEl.innerHTML =
+        '<li class="instrument-empty">' + emptyText + "</li>";
+      return;
     }
 
-    listEl.appendChild(li);
+    items.forEach(function (inst) {
+      const li = document.createElement("li");
+      li.className = "instrument-item";
+      li.setAttribute("data-symbol", inst.symbol);
+
+      li.innerHTML =
+        '<button class="star-btn active" type="button" data-symbol="' +
+        inst.symbol +
+        '">★</button>' +
+        '<div class="instrument-main">' +
+        '<span class="instrument-symbol">' +
+        inst.symbol +
+        "</span>" +
+        '<span class="instrument-name">' +
+        inst.name +
+        (inst.exchange ? " · " + inst.exchange : "") +
+        "</span>" +
+        "</div>";
+
+      li.addEventListener("click", function (e) {
+        const target = e.target;
+        if (
+          target &&
+          target.classList &&
+          target.classList.contains("star-btn")
+        ) {
+          return;
+        }
+        selectInstrument(inst);
+      });
+
+      const starBtn = li.querySelector(".star-btn");
+      if (starBtn) {
+        starBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          toggleWatchlist(inst);
+        });
+      }
+
+      listEl.appendChild(li);
+    });
+  }
+
+  renderGroup(cryptoEl, groups.crypto, "No favorite crypto.");
+  renderGroup(forexEl, groups.forex, "No favorite forex.");
+  renderGroup(stocksEl, groups.stocks, "No favorite stock.");
+}
+
+function openWatchlistCategoryPanel(inst) {
+  const overlay = document.getElementById("watchlistOverlay");
+  const panel = document.getElementById("watchlistCategoryPanel");
+  const label = document.getElementById("wishlistPanelInstrumentLabel");
+
+  pendingWatchlistInstrument = inst;
+
+  if (label) {
+    label.textContent =
+      inst.symbol + " · " + (inst.name || inst.exchange || "");
+  }
+
+  if (overlay) overlay.classList.add("visible");
+  if (panel) panel.classList.add("visible");
+}
+
+function closeWatchlistCategoryPanel() {
+  const overlay = document.getElementById("watchlistOverlay");
+  const panel = document.getElementById("watchlistCategoryPanel");
+
+  pendingWatchlistInstrument = null;
+
+  if (overlay) overlay.classList.remove("visible");
+  if (panel) panel.classList.remove("visible");
+}
+
+function initWatchlistPanel() {
+  const overlay = document.getElementById("watchlistOverlay");
+  const cancelBtn = document.getElementById("wishlistCancelBtn");
+  const catBtns = document.querySelectorAll(".wishlist-cat-btn");
+
+  if (overlay) {
+    overlay.addEventListener("click", function () {
+      closeWatchlistCategoryPanel();
+    });
+  }
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", function () {
+      closeWatchlistCategoryPanel();
+    });
+  }
+
+  catBtns.forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      if (!pendingWatchlistInstrument) return;
+
+      const chosenType = btn.getAttribute("data-type") || "stocks";
+
+      const inst = Object.assign({}, pendingWatchlistInstrument, {
+        type: chosenType,
+      });
+
+      const idx = watchlist.findIndex(function (w) {
+        return w.symbol === inst.symbol;
+      });
+      if (idx === -1) {
+        watchlist.push(inst);
+      } else {
+        watchlist[idx] = inst;
+      }
+
+      saveWatchlistToStorage();
+      renderWatchlist();
+      renderMarkets();
+
+      await addInstrumentToWatchlistOnServer(inst);
+
+      closeWatchlistCategoryPanel();
+    });
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      closeWatchlistCategoryPanel();
+    }
   });
 }
 
@@ -541,22 +732,41 @@ function toggleWatchlist(inst) {
     return w.symbol === inst.symbol;
   });
 
-  if (idx === -1) {
-    watchlist.push(inst);
-  } else {
+  if (idx !== -1) {
+    const symbol = inst.symbol;
     watchlist.splice(idx, 1);
+    saveWatchlistToStorage();
+    renderMarkets();
+    renderWatchlist();
+    removeInstrumentFromWatchlistOnServer(symbol);
+    return;
   }
 
-  saveWatchlistToStorage();
-  renderMarkets();
-  renderWatchlist();
+  openWatchlistCategoryPanel(inst);
 }
 
-function selectInstrument(symbol) {
-  const inst = INSTRUMENTS.find(function (i) {
-    return i.symbol === symbol;
-  });
-  if (!inst) return;
+function selectInstrument(symbolOrInstrument) {
+  if (!symbolOrInstrument) return;
+
+  let inst = null;
+
+  if (typeof symbolOrInstrument === "string") {
+    const symbol = symbolOrInstrument;
+    inst =
+      watchlist.find(function (w) {
+        return w.symbol === symbol;
+      }) ||
+      searchResults.find(function (r) {
+        return r.symbol === symbol;
+      }) ||
+      INSTRUMENTS.find(function (i) {
+        return i.symbol === symbol;
+      });
+  } else {
+    inst = symbolOrInstrument;
+  }
+
+  if (!inst || !inst.symbol) return;
 
   currentInstrument = inst;
 
@@ -567,19 +777,24 @@ function selectInstrument(symbol) {
   const priceInput = document.getElementById("orderPrice");
   const placeBtn = document.getElementById("placeOrderBtn");
 
-  if (chartTitle)
-    chartTitle.textContent = inst.name + " (" + inst.symbol + ")";
-  if (chartSubtitle)
-    chartSubtitle.textContent =
-      "Simulated chart · Last price: " +
-      inst.last.toFixed(2) +
-      " " +
-      inst.currency;
+  if (chartTitle) {
+    chartTitle.textContent =
+      (inst.name || inst.symbol) + " (" + inst.symbol + ")";
+  }
+
+  if (chartSubtitle) {
+    chartSubtitle.textContent = "Loading real market data...";
+  }
+
   if (ticketSymbol) ticketSymbol.textContent = inst.symbol;
-  if (ticketName) ticketName.textContent = inst.name;
+  if (ticketName) ticketName.textContent = inst.name || inst.symbol;
 
   if (priceInput) {
-    priceInput.value = inst.last.toFixed(2);
+    if (typeof inst.last === "number" && Number.isFinite(inst.last)) {
+      priceInput.value = inst.last.toFixed(2);
+    } else {
+      priceInput.value = "";
+    }
   }
   if (placeBtn) {
     placeBtn.disabled = false;
@@ -749,7 +964,7 @@ function renderChartFromApi() {
       console.error("Market data error:", err);
       if (chartSubtitle) {
         chartSubtitle.textContent =
-          "Nu s-au putut încărca datele reale. Afișez un grafic simulat.";
+          "Real market data could not be loaded. Displaying a simulated chart.";
       }
       renderSimulatedChart();
     });
