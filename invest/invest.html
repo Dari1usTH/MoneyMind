@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MoneyMind – Invest</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="./invest.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="./invest.js"></script>
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="nav-logo">
+        <h2><span>Money</span>Mind</h2>
+      </div>
+      <ul class="nav-links">
+        <li><a href="../dashboard/dashboard.html">Dashboard</a></li>
+        <li><a href="../profile/profile.html">Profile</a></li>
+        <li><a href="./invest.html" class="active">Invest</a></li>
+      </ul>
+      <button class="logout-btn" id="logoutBtn">Logout</button>
+    </nav>
+
+    <main class="dashboard">
+      <header class="dashboard-header">
+        <div>
+          <p class="subtitle">Trading &amp; investing</p>
+          <h2>Invest</h2>
+          <p class="muted">
+            Browse markets, open simulated positions and track them per account.
+          </p>
+        </div>
+        <div class="header-actions">
+          <div id="currentAccountChip" class="header-pill">
+            Account:
+            <span id="currentAccountName">-</span> •
+            <span id="currentAccountType">-</span> •
+            <span id="currentAccountBalance">0.00</span>
+          </div>
+          <button class="primary-ghost" id="goProfileBtn">
+            Change account in Profile
+          </button>
+        </div>
+      </header>
+
+      <section class="invest-layout">
+        <div class="card watchlist-card">
+          <div class="panel-header">
+            <div>
+              <h3>Markets</h3>
+              <p class="card-caption">
+                Search instruments and manage your watchlist.
+              </p>
+            </div>
+          </div>
+
+          <div class="market-tabs">
+            <button class="market-tab active" data-market="all">All</button>
+            <button class="market-tab" data-market="crypto">Crypto</button>
+            <button class="market-tab" data-market="forex">Forex</button>
+            <button class="market-tab" data-market="stocks">Stocks</button>
+          </div>
+
+          <div class="search-wrapper">
+            <input
+              type="text"
+              id="instrumentSearch"
+              placeholder="Search by name or symbol..."
+            />
+          </div>
+
+          <div class="watchlist-section">
+            <div class="watchlist-header">
+              <span>Watchlist</span>
+              <span id="watchlistCount" class="muted-small">0 items</span>
+            </div>
+            <ul id="watchlistList" class="instrument-list"></ul>
+          </div>
+
+          <div class="all-markets-section">
+            <div class="watchlist-header">
+              <span>All instruments</span>
+            </div>
+            <ul id="instrumentList" class="instrument-list"></ul>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="panel-header">
+            <div>
+              <h3 id="chartTitle">Select an instrument</h3>
+              <p class="card-caption" id="chartSubtitle">
+                Choose a symbol from the markets list to load a chart.
+              </p>
+            </div>
+            <div class="timeframe-controls">
+              <button class="tf-btn active" data-tf="1D">1D</button>
+              <button class="tf-btn" data-tf="1W">1W</button>
+              <button class="tf-btn" data-tf="1M">1M</button>
+              <button class="tf-btn" data-tf="1Y">1Y</button>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="priceChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card trade-card">
+          <div class="panel-header">
+            <div>
+              <h3>Order ticket</h3>
+              <p class="card-caption">
+                Open simulated positions on the selected instrument.
+              </p>
+            </div>
+          </div>
+
+          <div class="ticket-instrument">
+            <span id="ticketInstrumentSymbol">–</span>
+            <span id="ticketInstrumentName" class="muted-small">
+              Select an instrument to trade.
+            </span>
+          </div>
+
+          <form id="orderForm" class="order-form">
+            <div class="side-toggle">
+              <button
+                type="button"
+                class="side-btn active"
+                data-side="buy"
+              >
+                Buy
+              </button>
+              <button type="button" class="side-btn" data-side="sell">
+                Sell
+              </button>
+              <input type="hidden" id="orderSide" value="buy" />
+            </div>
+
+            <label class="order-field">
+              <span>Quantity</span>
+              <input
+                type="number"
+                id="orderQty"
+                min="0"
+                step="0.0001"
+                placeholder="0.01"
+              />
+            </label>
+
+            <label class="order-field">
+              <span>Price</span>
+              <input
+                type="number"
+                id="orderPrice"
+                min="0"
+                step="0.01"
+                placeholder="Market price"
+              />
+            </label>
+
+            <label class="order-field">
+              <span>Stop loss (optional)</span>
+              <input
+                type="number"
+                id="orderSl"
+                min="0"
+                step="0.01"
+              />
+            </label>
+
+            <label class="order-field">
+              <span>Take profit (optional)</span>
+              <input
+                type="number"
+                id="orderTp"
+                min="0"
+                step="0.01"
+              />
+            </label>
+
+            <button
+              type="submit"
+              class="primary-btn"
+              id="placeOrderBtn"
+              disabled
+            >
+              Place order
+            </button>
+            <p class="muted-small" id="orderInfo">
+              Select an instrument and fill in the quantity.
+            </p>
+          </form>
+
+          <div class="positions-section">
+            <div class="positions-header">
+              <h4>Open positions</h4>
+              <span id="openPositionsCount" class="muted-small">0</span>
+            </div>
+
+            <div class="positions-table-wrapper">
+              <table class="positions-table">
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Side</th>
+                    <th>Qty</th>
+                    <th>Entry</th>
+                    <th>Last</th>
+                    <th>P/L</th>
+                    <th>Opened</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="openPositionsBody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>
+          © 2025 <span>MoneyMind</span> • Made by Darius
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>
