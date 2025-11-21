@@ -188,6 +188,7 @@ async function submitCode(code, { auto = false } = {}) {
       localStorage.setItem("user", displayName);
     }
 
+    localStorage.removeItem("mm_selected_account_id");
     localStorage.removeItem("pendingLoginEmail");
     localStorage.removeItem("loginRemember");
     localStorage.removeItem("resendAttempts");

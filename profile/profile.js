@@ -1,8 +1,31 @@
 const API_BASE = "http://localhost:3001";
 const LOGIN_PATH = "/login/login.html";
+const SELECTED_ACCOUNT_KEY = "mm_selected_account_id";
 
 let accounts = [];
-let selectedAccountId = null;
+let selectedAccountId = loadSelectedAccountId();
+
+function loadSelectedAccountId() {
+  try {
+    const raw = localStorage.getItem(SELECTED_ACCOUNT_KEY);
+    if (!raw) return null;
+    const id = Number(raw);
+    return Number.isFinite(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSelectedAccountId(id) {
+  try {
+    if (id == null) {
+      localStorage.removeItem(SELECTED_ACCOUNT_KEY);
+    } else {
+      localStorage.setItem(SELECTED_ACCOUNT_KEY, String(id));
+    }
+  } catch {
+  }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   initHeaderDate();
@@ -125,12 +148,16 @@ async function loadAccounts(selectId = null) {
       if (selectId && accounts.some((a) => a.id === selectId)) {
         selectedAccountId = selectId;
       } else {
-        const defaultAcc = accounts.find((a) => a.is_default === 1 || a.is_default === true);
+        const defaultAcc = accounts.find(
+          (a) => a.is_default === 1 || a.is_default === true
+        );
         selectedAccountId = (defaultAcc || accounts[0]).id;
       }
     } else {
       selectedAccountId = null;
     }
+
+    saveSelectedAccountId(selectedAccountId);
 
     renderAccounts();
     renderSelectedAccount();
@@ -161,12 +188,42 @@ function renderAccounts() {
       ${account.is_default ? '<div class="account-meta">Default</div>' : ""}
     `;
 
-    card.addEventListener("click", () => {
-      selectedAccountId = account.id;
-      renderAccounts();
-      renderSelectedAccount();
-    });
+    card.addEventListener("click", async () => {
+      if (selectedAccountId === account.id) return;
 
+      try {
+        const res = await fetch(`${API_BASE}/api/accounts/${account.id}/default`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        const data = await res.json();
+        if (!data.success) {
+          console.error("Could not set default account:", data.message);
+          return;
+        }
+
+        if (Array.isArray(data.accounts)) {
+          accounts = data.accounts;
+        } else {
+          accounts = accounts.map((a) => ({
+            ...a,
+            is_default: a.id === account.id ? 1 : 0,
+          }));
+        }
+
+        selectedAccountId = account.id;
+        saveSelectedAccountId(selectedAccountId);
+
+        renderAccounts();
+        renderSelectedAccount();
+      } catch (err) {
+        console.error("Error while setting default account:", err);
+      }
+    });
     container.appendChild(card);
   });
 

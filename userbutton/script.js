@@ -23,6 +23,7 @@ if (!username) {
     }
 
     localStorage.removeItem("user");
+    localStorage.removeItem("mm_selected_account_id"); 
     location.reload();
   });
-}
+} 
