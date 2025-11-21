@@ -12,6 +12,8 @@ const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const fetch = require('node-fetch');
 const crypto = require('crypto');
+const MARKET_API_BASE = 'https://api.twelvedata.com';
+const MARKET_API_KEY = process.env.MARKET_API_KEY || '';
 
 const app = express();
 
@@ -1087,6 +1089,191 @@ app.patch('/api/accounts/:id/default', authMiddleware, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Could not set default account.',
+    });
+  }
+});
+
+function mapIntervalParam(tf) {
+  switch (tf) {
+    case '1m': return '1min';
+    case '5m': return '5min';
+    case '15m': return '15min';
+    case '30m': return '30min';
+    case '1h': return '1h';
+    case '4h': return '4h';
+    case '1D': return '1day';
+    case '1W': return '1week';
+    case '1M': return '1month';
+    case '1Y': return '1month';
+    default: return '1day';
+  }
+}
+
+app.get('/api/markets/ohlc', authMiddleware, async (req, res) => {
+  try {
+    const symbol = req.query.symbol;
+    const timeframe = req.query.timeframe || '1D';
+
+    if (!symbol) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing symbol.',
+      });
+    }
+
+    if (!MARKET_API_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: 'Market data API is not configured (MARKET_API_KEY missing).',
+      });
+    }
+
+    const intervalParam = mapIntervalParam(timeframe);
+
+    const pointsByTf = {
+      '1m': 180,
+      '5m': 200,
+      '15m': 200,
+      '30m': 200,
+      '1h': 200,
+      '4h': 200,
+      '1D': 200,
+      '1W': 200,
+      '1M': 200,
+      '1Y': 200,
+    };
+    const outputSize = pointsByTf[timeframe] || 200;
+
+    const url = new URL(`${MARKET_API_BASE}/time_series`);
+    url.searchParams.set('symbol', symbol);       // ex: BTC/USD
+    url.searchParams.set('interval', intervalParam);
+    url.searchParams.set('outputsize', String(outputSize));
+    url.searchParams.set('apikey', MARKET_API_KEY);
+
+    const apiRes = await fetch(url.toString());
+    if (!apiRes.ok) {
+      console.error('Market data upstream error:', apiRes.status);
+      return res.status(502).json({
+        success: false,
+        message: 'Upstream market data error.',
+      });
+    }
+
+    const raw = await apiRes.json();
+
+    if (!raw || !raw.values) {
+      console.error('Unexpected market data response:', raw);
+      return res.status(502).json({
+        success: false,
+        message: 'Invalid market data response.',
+      });
+    }
+
+    const candles = raw.values
+      .slice()
+      .reverse()
+      .map((item) => ({
+        time: item.datetime,
+        open: Number(item.open),
+        high: Number(item.high),
+        low: Number(item.low),
+        close: Number(item.close),
+      }))
+      .filter((c) =>
+        Number.isFinite(c.open) &&
+        Number.isFinite(c.high) &&
+        Number.isFinite(c.low) &&
+        Number.isFinite(c.close)
+      );
+
+    const lastPrice = candles.length ? candles[candles.length - 1].close : null;
+
+    return res.json({
+      success: true,
+      symbol: raw.symbol || symbol,
+      interval: raw.interval || intervalParam,
+      candles,
+      lastPrice,
+      currency: raw.currency || null,
+    });
+  } catch (err) {
+    console.error('GET /api/markets/ohlc error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while loading market data.',
+    });
+  }
+});
+
+app.patch('/api/accounts/:id/balance', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const accountId = Number(req.params.id);
+    let { balance } = req.body || {};
+
+    if (!Number.isInteger(accountId) || accountId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid account id.',
+      });
+    }
+
+    balance = Number(balance);
+    if (!Number.isFinite(balance) || balance < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid balance value.',
+      });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      const [rows] = await conn.execute(
+        'SELECT id FROM accounts WHERE id = ? AND user_id = ? LIMIT 1',
+        [accountId, userId]
+      );
+
+      if (!rows.length) {
+        return res.status(404).json({
+          success: false,
+          message: 'Account not found.',
+        });
+      }
+
+      await conn.execute(
+        'UPDATE accounts SET balance = ? WHERE id = ? AND user_id = ?',
+        [balance, accountId, userId]
+      );
+
+      const [updatedRows] = await conn.execute(
+        `SELECT
+           id,
+           account_name,
+           account_type,
+           currency,
+           balance,
+           initial_balance,
+           is_default,
+           created_at,
+           updated_at
+         FROM accounts
+         WHERE id = ? AND user_id = ?
+         LIMIT 1`,
+        [accountId, userId]
+      );
+
+      return res.json({
+        success: true,
+        account: updatedRows[0],
+      });
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('PATCH /api/accounts/:id/balance error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not update balance.',
     });
   }
 });
