@@ -12,7 +12,6 @@ let currentInstrument = null;
 let currentTimeframe = "1D";
 
 let watchlist = [];
-let positions = [];
 
 let chartInstance = null;
 let chartRefreshTimer = null;
@@ -113,7 +112,9 @@ async function initInvestPage() {
   await loadAccounts();
 
   await loadWatchlistFromServer();
-  loadPositionsFromStorage();
+  await loadWatchlistFromServer();
+  await loadPositionsFromServer();
+
 
   initMarketTabs();
   initSearch();
@@ -148,6 +149,55 @@ async function loadMe() {
     currentUser = data.user;
   } catch (err) {
     console.error("loadMe error:", err);
+  }
+}
+
+async function loadPositionsFromServer() {
+  if (!selectedAccount) {
+    positions = [];
+    renderPositions();
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      API_BASE + "/api/orders?accountId=" + encodeURIComponent(selectedAccount.id),
+      { credentials: "include" }
+    );
+
+    if (!res.ok) {
+      throw new Error("HTTP " + res.status);
+    }
+
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.orders)) {
+      throw new Error("Invalid orders payload");
+    }
+
+    positions = data.orders.map(function (row) {
+      return {
+        id: row.id,
+        accountId: row.account_id,
+        instrumentSymbol: row.symbol,
+        instrumentName: row.name,
+        side: row.side,
+        quantity: Number(row.quantity),
+        entryPrice: Number(row.entry_price),
+        stopLoss: row.stop_loss != null ? Number(row.stop_loss) : null,
+        takeProfit: row.take_profit != null ? Number(row.take_profit) : null,
+        openedAt: row.opened_at,
+        status: row.status,
+        apiSymbol: row.api_symbol,
+        closePrice: row.close_price != null ? Number(row.close_price) : null,
+        profitLoss: row.profit_loss != null ? Number(row.profit_loss) : null,
+      };
+    });
+
+    renderPositions();
+  } catch (err) {
+    console.error("loadPositionsFromServer error:", err);
+    positions = [];
+    renderPositions();
   }
 }
 
@@ -311,11 +361,6 @@ function getWatchlistStorageKey() {
   return "mm_watchlist_v1_" + uid;
 }
 
-function getPositionsStorageKey() {
-  const uid = currentUser && currentUser.id ? currentUser.id : "guest";
-  return "mm_positions_v1_" + uid;
-}
-
 function loadWatchlistFromStorage() {
   try {
     const key = getWatchlistStorageKey();
@@ -355,32 +400,6 @@ function saveWatchlistToStorage() {
     localStorage.setItem(key, JSON.stringify(watchlist));
   } catch (err) {
     console.error("saveWatchlistToStorage error:", err);
-  }
-}
-
-function loadPositionsFromStorage() {
-  try {
-    const key = getPositionsStorageKey();
-    const raw = localStorage.getItem(key);
-    if (!raw) {
-      positions = [];
-      return;
-    }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) positions = parsed;
-    else positions = [];
-  } catch (err) {
-    console.error("loadPositionsFromStorage error:", err);
-    positions = [];
-  }
-}
-
-function savePositionsToStorage() {
-  try {
-    const key = getPositionsStorageKey();
-    localStorage.setItem(key, JSON.stringify(positions));
-  } catch (err) {
-    console.error("savePositionsToStorage error:", err);
   }
 }
 
@@ -1061,7 +1080,7 @@ function initOrderForm() {
   });
 }
 
-function placeOrder() {
+async function placeOrder() {
   if (!currentInstrument || !selectedAccount) {
     alert("Select an instrument and make sure you have an account.");
     return;
@@ -1074,8 +1093,7 @@ function placeOrder() {
   const tpInput = document.getElementById("orderTp");
   const infoEl = document.getElementById("orderInfo");
 
-  const side =
-    sideInput && sideInput.value === "sell" ? "sell" : "buy";
+  const side = sideInput && sideInput.value === "sell" ? "sell" : "buy";
   const qty = qtyInput ? Number(qtyInput.value) : 0;
   const price =
     priceInput && priceInput.value
@@ -1089,39 +1107,75 @@ function placeOrder() {
     return;
   }
 
-  const position = {
-    id: "pos_" + Date.now() + "_" + Math.random().toString(16).slice(2),
+  const payload = {
     accountId: selectedAccount.id,
-    instrumentSymbol: currentInstrument.symbol,
-    instrumentName: currentInstrument.name,
+    symbol: currentInstrument.symbol,
+    apiSymbol: currentInstrument.apiSymbol || currentInstrument.symbol,
+    name: currentInstrument.name || currentInstrument.symbol,
+    type: currentInstrument.type || "stocks",
+    currency: currentInstrument.currency || null,
     side: side,
     quantity: qty,
     entryPrice: price,
     stopLoss: sl,
     takeProfit: tp,
-    openedAt: new Date().toISOString(),
-    status: "open",
   };
 
-  positions.push(position);
-  savePositionsToStorage();
-  renderPositions();
+  try {
+    const res = await fetch(API_BASE + "/api/orders", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (qtyInput) qtyInput.value = "";
-  if (slInput) slInput.value = "";
-  if (tpInput) tpInput.value = "";
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      console.error("placeOrder API error:", data);
+      alert(data.message || "Could not place order.");
+      return;
+    }
 
-  if (infoEl) {
-    infoEl.textContent =
-      "Opened " +
-      side.toUpperCase() +
-      " " +
-      qty +
-      " " +
-      currentInstrument.symbol +
-      " @ " +
-      price.toFixed(2) +
-      ".";
+    const row = data.order;
+    const position = {
+      id: row.id,
+      accountId: row.account_id,
+      instrumentSymbol: row.symbol,
+      instrumentName: row.name,
+      side: row.side,
+      quantity: Number(row.quantity),
+      entryPrice: Number(row.entry_price),
+      stopLoss: row.stop_loss != null ? Number(row.stop_loss) : null,
+      takeProfit: row.take_profit != null ? Number(row.take_profit) : null,
+      openedAt: row.opened_at,
+      status: row.status,
+      apiSymbol: row.api_symbol,
+    };
+
+    positions.unshift(position);
+    renderPositions();
+
+    if (qtyInput) qtyInput.value = "";
+    if (slInput) slInput.value = "";
+    if (tpInput) tpInput.value = "";
+
+    if (infoEl) {
+      infoEl.textContent =
+        "Opened " +
+        side.toUpperCase() +
+        " " +
+        qty +
+        " " +
+        currentInstrument.symbol +
+        " @ " +
+        price.toFixed(2) +
+        ".";
+    }
+  } catch (err) {
+    console.error("placeOrder error:", err);
+    alert("Server error while placing order.");
   }
 }
 
@@ -1226,16 +1280,47 @@ function renderPositions() {
   });
 }
 
-function closePosition(id) {
+async function closePosition(id) {
   const idx = positions.findIndex(function (p) {
     return p.id === id;
   });
   if (idx === -1) return;
 
-  positions[idx].status = "closed";
-  positions[idx].closedAt = new Date().toISOString();
-  savePositionsToStorage();
-  renderPositions();
+  try {
+    const res = await fetch(API_BASE + "/api/orders/" + encodeURIComponent(id) + "/close", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      console.error("closePosition API error:", data);
+      alert(data.message || "Could not close order.");
+      return;
+    }
+    positions.splice(idx, 1);
+    renderPositions();
+
+    if (data.account) {
+      const updatedAcc = data.account;
+      const accIdx = accounts.findIndex(function (a) {
+        return a.id === updatedAcc.id;
+      });
+      if (accIdx !== -1) {
+        accounts[accIdx] = updatedAcc;
+      }
+      if (selectedAccount && selectedAccount.id === updatedAcc.id) {
+        selectedAccount = updatedAcc;
+        renderSelectedAccountChip();
+      }
+    }
+  } catch (err) {
+    console.error("closePosition error:", err);
+    alert("Server error while closing order.");
+  }
 }
 
 function autoSelectInitialInstrument() {

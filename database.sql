@@ -48,3 +48,39 @@ CREATE TABLE watchlists (
     INDEX idx_watchlists_user (user_id)
 );
 
+CREATE TABLE orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    account_id INT NOT NULL,
+    symbol VARCHAR(50) NOT NULL,
+    api_symbol VARCHAR(100) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    instrument_type ENUM('crypto', 'forex', 'stocks') NOT NULL,
+    currency VARCHAR(10) DEFAULT NULL,
+
+    side ENUM('buy', 'sell') NOT NULL,
+    quantity DECIMAL(18, 8) NOT NULL,
+    entry_price DECIMAL(18, 8) NOT NULL,
+    stop_loss DECIMAL(18, 8) DEFAULT NULL,
+    take_profit DECIMAL(18, 8) DEFAULT NULL,
+
+    status ENUM('open', 'closed') NOT NULL DEFAULT 'open',
+    opened_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    closed_at DATETIME DEFAULT NULL,
+    close_price DECIMAL(18, 8) DEFAULT NULL,
+    profit_loss DECIMAL(18, 8) DEFAULT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_orders_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE,
+
+    CONSTRAINT fk_orders_account
+      FOREIGN KEY (account_id) REFERENCES accounts(id)
+      ON DELETE CASCADE,
+
+    INDEX idx_orders_user (user_id),
+    INDEX idx_orders_account (account_id, status),
+    INDEX idx_orders_symbol (symbol)
+);

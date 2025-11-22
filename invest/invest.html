@@ -4,30 +4,33 @@
     <meta charset="UTF-8" />
     <title>MoneyMind – Invest</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="../style.css" />
     <link rel="stylesheet" href="./invest.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <script defer src="./invest.js"></script>
+    <script defer src="../userbutton/script.js"></script>
   </head>
   <body>
     <nav class="navbar">
       <div class="nav-logo">
-        <h2><span>Money</span>Mind</h2>
+        <h2>Money<span>Mind</span></h2>
       </div>
       <ul class="nav-links">
-        <li><a href="../dashboard/dashboard.html">Dashboard</a></li>
-        <li><a href="../profile/profile.html">Profile</a></li>
+        <li><a href="../index.html">Dashboard</a></li>
         <li><a href="./invest.html" class="active">Invest</a></li>
+        <li><a href="#">News</a></li>
+        <li><a href="../profile/profile.html">Profile</a></li>
+        <li><a href="#">Settings</a></li>
       </ul>
-      <button class="logout-btn" id="logoutBtn">Logout</button>
+      <button id="logoutBtn" class="logout-btn"></button>
     </nav>
 
     <main class="dashboard">
       <header class="dashboard-header">
         <div>
           <p class="subtitle">Trading &amp; investing</p>
-          <h2>Invest</h2>
+          <h2>Welcome back, <span id="userName">Guest</span> 👋</h2>
           <p class="muted">
             Browse markets, open simulated positions and track them per account.
           </p>

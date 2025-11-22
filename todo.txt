@@ -7,7 +7,7 @@ xoy grafic
 
 sa apara $ la grafic
 
-
+notificari invest
 
 calculator dobanda compusa
 add chaneg account button from invest to index
@@ -16,7 +16,3 @@ add chaneg account button from invest to index
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-
-now a stock when you load invest page it will be loaded
-filter buttons now are working from markets
-chart it will be updated at 1 min interval

@@ -1109,6 +1109,38 @@ function mapIntervalParam(tf) {
   }
 }
 
+async function fetchLatestPriceFromApi(symbol) {
+  if (!MARKET_API_KEY) {
+    throw new Error('Market data API key missing.');
+  }
+
+  const url = new URL(`${MARKET_API_BASE}/price`);
+  url.searchParams.set('symbol', symbol);
+  url.searchParams.set('apikey', MARKET_API_KEY);
+
+  const apiRes = await fetch(url.toString());
+  if (!apiRes.ok) {
+    const text = await apiRes.text();
+    console.error('fetchLatestPriceFromApi error status:', apiRes.status, text);
+    throw new Error('Upstream price API error');
+  }
+
+  const raw = await apiRes.json();
+
+  if (raw.status === 'error') {
+    console.error('fetchLatestPriceFromApi upstream error:', raw);
+    throw new Error(raw.message || 'Price API error');
+  }
+
+  const price = Number(raw.price);
+  if (!Number.isFinite(price)) {
+    console.error('fetchLatestPriceFromApi invalid price payload:', raw);
+    throw new Error('Invalid price value');
+  }
+
+  return price;
+}
+
 app.get('/api/markets/ohlc', authMiddleware, async (req, res) => {
   try {
     const symbol = req.query.symbol;
@@ -1516,6 +1548,410 @@ app.delete('/api/watchlist/:symbol', authMiddleware, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Could not remove from watchlist.',
+    });
+  }
+});
+
+app.get('/api/orders', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const accountId = req.query.accountId ? Number(req.query.accountId) : null;
+
+    const conn = await pool.getConnection();
+    try {
+      let rows;
+      if (accountId) {
+        const [data] = await conn.execute(
+          `SELECT
+             id,
+             user_id,
+             account_id,
+             symbol,
+             api_symbol,
+             name,
+             instrument_type,
+             currency,
+             side,
+             quantity,
+             entry_price,
+             stop_loss,
+             take_profit,
+             status,
+             opened_at,
+             closed_at,
+             close_price,
+             profit_loss
+           FROM orders
+           WHERE user_id = ? AND account_id = ? AND status = 'open'
+           ORDER BY opened_at DESC`,
+          [userId, accountId]
+        );
+        rows = data;
+      } else {
+        const [data] = await conn.execute(
+          `SELECT
+             id,
+             user_id,
+             account_id,
+             symbol,
+             api_symbol,
+             name,
+             instrument_type,
+             currency,
+             side,
+             quantity,
+             entry_price,
+             stop_loss,
+             take_profit,
+             status,
+             opened_at,
+             closed_at,
+             close_price,
+             profit_loss
+           FROM orders
+           WHERE user_id = ? AND status = 'open'
+           ORDER BY opened_at DESC`,
+          [userId]
+        );
+        rows = data;
+      }
+
+      return res.json({
+        success: true,
+        orders: rows,
+      });
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('GET /api/orders error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not load orders.',
+    });
+  }
+});
+
+app.post('/api/orders', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const {
+      accountId,
+      symbol,
+      apiSymbol,
+      name,
+      type,
+      currency = null,
+      side,
+      quantity,
+      entryPrice,
+      stopLoss = null,
+      takeProfit = null,
+    } = req.body || {};
+
+    if (!accountId || !symbol || !apiSymbol || !name || !side || !quantity || !entryPrice) {
+      return res.status(400).json({
+        success: false,
+        message: 'accountId, symbol, apiSymbol, name, side, quantity, entryPrice are required.',
+      });
+    }
+
+    const allowedSides = ['buy', 'sell'];
+    const finalSide = allowedSides.includes(side) ? side : null;
+    if (!finalSide) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid side. Must be "buy" or "sell".',
+      });
+    }
+
+    const allowedTypes = ['crypto', 'forex', 'stocks'];
+    const safeType = allowedTypes.includes(type) ? type : 'stocks';
+
+    const qty = Number(quantity);
+    const price = Number(entryPrice);
+
+    if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(price) || price <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid quantity or entry price.',
+      });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      // verificăm că account-ul aparține user-ului
+      const [accRows] = await conn.execute(
+        `SELECT id, balance, currency
+         FROM accounts
+         WHERE id = ? AND user_id = ?
+         LIMIT 1`,
+        [accountId, userId]
+      );
+
+      if (!accRows.length) {
+        await conn.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'Account not found.',
+        });
+      }
+
+      const [result] = await conn.execute(
+        `INSERT INTO orders (
+           user_id,
+           account_id,
+           symbol,
+           api_symbol,
+           name,
+           instrument_type,
+           currency,
+           side,
+           quantity,
+           entry_price,
+           stop_loss,
+           take_profit,
+           status,
+           opened_at
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', NOW())`,
+        [
+          userId,
+          accountId,
+          symbol,
+          apiSymbol,
+          name,
+          safeType,
+          currency,
+          finalSide,
+          qty,
+          price,
+          stopLoss,
+          takeProfit,
+        ]
+      );
+
+      const [rows] = await conn.execute(
+        `SELECT
+           id,
+           user_id,
+           account_id,
+           symbol,
+           api_symbol,
+           name,
+           instrument_type,
+           currency,
+           side,
+           quantity,
+           entry_price,
+           stop_loss,
+           take_profit,
+           status,
+           opened_at,
+           closed_at,
+           close_price,
+           profit_loss
+         FROM orders
+         WHERE id = ? AND user_id = ?
+         LIMIT 1`,
+        [result.insertId, userId]
+      );
+
+      await conn.commit();
+
+      return res.status(201).json({
+        success: true,
+        order: rows[0],
+      });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('POST /api/orders error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not create order.',
+    });
+  }
+});
+
+app.post('/api/orders/:id/close', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const orderId = Number(req.params.id);
+
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid order id.',
+      });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      const [orderRows] = await conn.execute(
+        `SELECT
+           id,
+           user_id,
+           account_id,
+           symbol,
+           api_symbol,
+           side,
+           quantity,
+           entry_price,
+           status
+         FROM orders
+         WHERE id = ? AND user_id = ?
+         LIMIT 1`,
+        [orderId, userId]
+      );
+
+      if (!orderRows.length) {
+        await conn.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'Order not found.',
+        });
+      }
+
+      const order = orderRows[0];
+
+      if (order.status !== 'open') {
+        await conn.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Order is already closed.',
+        });
+      }
+
+      const [accRows] = await conn.execute(
+        `SELECT id, balance, currency
+         FROM accounts
+         WHERE id = ? AND user_id = ?
+         LIMIT 1`,
+        [order.account_id, userId]
+      );
+
+      if (!accRows.length) {
+        await conn.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'Account not found for this order.',
+        });
+      }
+
+      const account = accRows[0];
+
+      const apiSymbol = order.api_symbol || order.symbol;
+      let closePrice;
+      try {
+        closePrice = await fetchLatestPriceFromApi(apiSymbol);
+      } catch (priceErr) {
+        console.error('close order price error:', priceErr);
+        await conn.rollback();
+        return res.status(502).json({
+          success: false,
+          message: 'Could not fetch latest price to close the order.',
+        });
+      }
+
+      const qty = Number(order.quantity);
+      const entryPrice = Number(order.entry_price);
+      let pnl;
+
+      if (order.side === 'buy') {
+        pnl = (closePrice - entryPrice) * qty;
+      } else {
+        pnl = (entryPrice - closePrice) * qty;
+      }
+
+      const newBalance = Number(account.balance) + pnl;
+
+      await conn.execute(
+        `UPDATE orders
+         SET status = 'closed',
+             closed_at = NOW(),
+             close_price = ?,
+             profit_loss = ?
+         WHERE id = ? AND user_id = ?`,
+        [closePrice, pnl, orderId, userId]
+      );
+
+      await conn.execute(
+        `UPDATE accounts
+         SET balance = ?
+         WHERE id = ? AND user_id = ?`,
+        [newBalance, account.id, userId]
+      );
+
+      const [updatedOrderRows] = await conn.execute(
+        `SELECT
+           id,
+           user_id,
+           account_id,
+           symbol,
+           api_symbol,
+           name,
+           instrument_type,
+           currency,
+           side,
+           quantity,
+           entry_price,
+           stop_loss,
+           take_profit,
+           status,
+           opened_at,
+           closed_at,
+           close_price,
+           profit_loss
+         FROM orders
+         WHERE id = ? AND user_id = ?
+         LIMIT 1`,
+        [orderId, userId]
+      );
+
+      const [updatedAccRows] = await conn.execute(
+        `SELECT
+           id,
+           account_name,
+           account_type,
+           currency,
+           balance,
+           initial_balance,
+           is_default,
+           created_at,
+           updated_at
+         FROM accounts
+         WHERE id = ? AND user_id = ?
+         LIMIT 1`,
+        [account.id, userId]
+      );
+
+      await conn.commit();
+
+      return res.json({
+        success: true,
+        order: updatedOrderRows[0],
+        account: updatedAccRows[0],
+      });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('POST /api/orders/:id/close error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not close order.',
     });
   }
 });
