@@ -37,7 +37,15 @@
 
       <div class="header-actions">
         <div class="header-pill" id="currentDate"></div>
-        <button class="primary-ghost" id="addInvestmentBtn">+ Add Investment</button>
+        <div id="currentAccountChip" class="header-pill">
+          Account:
+          <span id="currentAccountName">-</span> •
+          <span id="currentAccountType">-</span> •
+          <span id="currentAccountBalance">0.00</span>
+        </div>
+        <button class="primary-ghost" id="goProfileBtn">
+          Change account in Profile
+        </button>
       </div>
     </header>
 
@@ -153,7 +161,7 @@
     </footer>
   </main>
 
-  <script src="script.js"></script>
+  <script src="script_dashboard.js"></script>
   <script src="newsbot/newsbot.js"></script>
   <script src="../userbutton/script.js"></script>
 

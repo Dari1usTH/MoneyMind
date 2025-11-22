@@ -9,5 +9,5 @@ add chaneg account button from invest to index
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-added notify for inves page 
-created navbar for support page
+added account show and change account button on dashboard
+fix news page login/logout button do not have text
