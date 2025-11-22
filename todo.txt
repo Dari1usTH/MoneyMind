@@ -2,11 +2,8 @@
 
 -------------------to do --------------
 
-user trebuie sa fie logat
 xoy grafic 
-
 sa apara $ la grafic
-
 notificari invest
 
 calculator dobanda compusa

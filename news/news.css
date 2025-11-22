@@ -1,0 +1,69 @@
+.news-page-card {
+  margin-top: 24px;
+  min-height: 420px;
+}
+
+.news-topic-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-right: 8px;
+}
+
+.news-topic-btn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 255, 198, 0.4);
+  background: rgba(0, 0, 0, 0.35);
+  color: #e6f7ff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.news-topic-btn:hover {
+  border-color: rgba(0, 255, 198, 0.9);
+  box-shadow: 0 0 12px rgba(0, 255, 198, 0.35);
+}
+
+.news-topic-btn.active {
+  background: radial-gradient(
+    circle at top left,
+    rgba(0, 255, 198, 0.25),
+    rgba(0, 0, 0, 0.7)
+  );
+  border-color: rgba(0, 255, 198, 0.9);
+  box-shadow: 0 0 14px rgba(0, 255, 198, 0.5);
+}
+
+.news-page-card {
+  margin-top: 24px;
+  min-height: 420px;
+  position: relative;
+}
+
+.news-page-card .news-list {
+  max-height: calc(100% - 90px); 
+  overflow-y: auto;
+}
+
+.news-resize-handle {
+  margin-top: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #00ffc6, #00b3ff);
+  opacity: 0.55;
+  cursor: ns-resize;
+  transition: opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.news-resize-handle:hover {
+  opacity: 1;
+  box-shadow: 0 0 10px rgba(0, 255, 198, 0.6);
+}
+
+@media (max-width: 700px) {
+  .news-page-card {
+    min-height: 320px;
+  }
+}

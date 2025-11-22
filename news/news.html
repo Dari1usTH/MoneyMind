@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoneyMind - News</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="./news.css" />
+  <script src="../captcha/captcha.js"></script>
+</head>
+<body onload="ensureCaptcha()">
+  <nav class="navbar">
+    <div class="nav-logo">
+      <h2>Money<span>Mind</span></h2>
+    </div>
+    <ul class="nav-links">
+      <li><a href="../index.html">Dashboard</a></li>
+      <li><a href="../invest/invest.html">Invest</a></li>
+      <li><a href="./news.html" class="active">News</a></li>
+      <li><a href="../profile/profile.html">Profile</a></li>
+      <li><a href="#">Settings</a></li>
+    </ul>
+    <button id="logoutBtn" class="logout-btn"></button>
+  </nav>
+
+  <main class="dashboard">
+    <header class="dashboard-header">
+      <div>
+        <p class="subtitle">Market headlines</p>
+        <h2>News feed for You</span></h2>
+        <p class="muted">
+          Stay up to date with forex, stocks and crypto news in one place.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <div class="header-pill" id="currentDate"></div>
+      </div>
+    </header>
+
+    <section class="card news-card news-page-card">
+      <div class="news-header">
+        <div>
+          <h3>MoneyMind <span>News</span></h3>
+          <p class="news-sub">
+            Latest headlines from <span>all markets</span>.
+          </p>
+        </div>
+
+        <div class="news-controls">
+          <div class="news-topic-buttons">
+            <button class="news-topic-btn active" data-topic="all">All</button>
+            <button class="news-topic-btn" data-topic="forex">Forex</button>
+            <button class="news-topic-btn" data-topic="stocks">Stocks</button>
+            <button class="news-topic-btn" data-topic="crypto">Crypto</button>
+          </div>
+          <button id="newsRefreshBtn" class="news-refresh-btn">Refresh</button>
+        </div>
+      </div>
+
+      <div id="newsStatus" class="news-status"></div>
+
+      <div id="newsList" class="news-list">
+      </div>
+      <div id="newsResizeHandle" class="news-resize-handle"></div>
+    </section>
+
+    <footer class="footer">
+      <p>
+        © 2025 <span>MoneyMind</span> • Made by Darius • Mail:
+        <a href="mailto:moneymind@gmail.com">moneymind@gmail.com</a>
+      </p>
+    </footer>
+  </main>
+
+  <script src="./news.js"></script>
+  <script src="../userbutton/script.js"></script>
+
+  <script>
+    const dateEl = document.getElementById('currentDate');
+    if (dateEl) {
+      const now = new Date();
+      dateEl.textContent = now.toLocaleDateString('en-US', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+  </script>
+</body>
+</html>
