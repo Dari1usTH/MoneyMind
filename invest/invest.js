@@ -1083,9 +1083,9 @@ function placeOrder() {
 }
 
 function renderPositions() {
-  const tbody = document.getElementById("openPositionsBody");
+  const listEl = document.getElementById("openPositionsList");
   const countEl = document.getElementById("openPositionsCount");
-  if (!tbody) return;
+  if (!listEl) return;
 
   const openPositions = positions.filter(function (p) {
     const sameAccount =
@@ -1095,59 +1095,91 @@ function renderPositions() {
 
   if (countEl) countEl.textContent = String(openPositions.length);
 
-  tbody.innerHTML = "";
+  listEl.innerHTML = "";
+
+  if (!openPositions.length) {
+    const empty = document.createElement("div");
+    empty.className = "instrument-empty";
+    empty.textContent = "No open positions on this account yet.";
+    listEl.appendChild(empty);
+    return;
+  }
 
   openPositions.forEach(function (pos) {
-    const inst = INSTRUMENTS.find(function (i) {
-      return i.symbol === pos.instrumentSymbol;
-    });
-    const lastPrice = inst ? inst.last : pos.entryPrice;
+    let lastPrice = pos.entryPrice;
+
+    const instLocal =
+      INSTRUMENTS.find(function (i) {
+        return i.symbol === pos.instrumentSymbol;
+      }) ||
+      watchlist.find(function (w) {
+        return w.symbol === pos.instrumentSymbol;
+      }) ||
+      searchResults.find(function (r) {
+        return r.symbol === pos.instrumentSymbol;
+      });
+
+    if (instLocal && typeof instLocal.last === "number") {
+      lastPrice = instLocal.last;
+    }
+
     const pnl =
       pos.side === "buy"
         ? (lastPrice - pos.entryPrice) * pos.quantity
         : (pos.entryPrice - lastPrice) * pos.quantity;
 
-    const tr = document.createElement("tr");
+    const openedAtStr = new Date(pos.openedAt).toLocaleString();
 
-    tr.innerHTML =
-      "<td>" +
+    const row = document.createElement("div");
+    row.className = "position-row";
+
+    row.innerHTML =
+      '<div class="position-main">' +
+      '  <div class="position-topline">' +
+      '    <span class="position-symbol">' +
       pos.instrumentSymbol +
-      "</td>" +
-      '<td class="' +
+      "</span>" +
+      '    <span class="position-side ' +
       (pos.side === "buy" ? "pl-buy" : "pl-sell") +
       '">' +
       pos.side.toUpperCase() +
-      "</td>" +
-      "<td>" +
+      "</span>" +
+      "  </div>" +
+      '  <div class="position-subline">' +
+      '    <span>Qty ' +
       pos.quantity +
-      "</td>" +
-      "<td>" +
+      "</span>" +
+      '    <span>• Entry ' +
       pos.entryPrice.toFixed(2) +
-      "</td>" +
-      "<td>" +
+      "</span>" +
+      '    <span>• Last ' +
       lastPrice.toFixed(2) +
-      "</td>" +
-      '<td class="' +
+      "</span>" +
+      '    <span class="' +
       (pnl >= 0 ? "pl-positive" : "pl-negative") +
-      '">' +
+      '">• ' +
       (pnl >= 0 ? "+" : "") +
       pnl.toFixed(2) +
-      "</td>" +
-      "<td>" +
-      new Date(pos.openedAt).toLocaleTimeString() +
-      "</td>" +
-      '<td><button class="link-btn" data-id="' +
+      "</span>" +
+      "  </div>" +
+      "</div>" +
+      '<div class="position-meta">' +
+      '  <span class="position-opened">' +
+      openedAtStr +
+      "</span>" +
+      '  <button class="link-btn position-close-btn" data-id="' +
       pos.id +
-      '">Close</button></td>';
+      '">Close</button>' +
+      "</div>";
 
-    const closeBtn = tr.querySelector(".link-btn");
+    const closeBtn = row.querySelector(".position-close-btn");
     if (closeBtn) {
       closeBtn.addEventListener("click", function () {
         closePosition(pos.id);
       });
     }
 
-    tbody.appendChild(tr);
+    listEl.appendChild(row);
   });
 }
 

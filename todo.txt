@@ -4,7 +4,7 @@
 
 user trebuie sa fie logat
 calculator dobanda compusa
-
+sa apara $ la grafic
 
 
 xoy grafic 
@@ -15,4 +15,6 @@ xoy grafic
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-fix chart now showing
+new style for open positions
+moves open postions to another box
+style for place order button

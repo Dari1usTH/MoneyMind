@@ -214,32 +214,25 @@
               Select an instrument and fill in the quantity.
             </p>
           </form>
+        </div>
+      </section>
 
-          <div class="positions-section">
-            <div class="positions-header">
-              <h4>Open positions</h4>
-              <span id="openPositionsCount" class="muted-small">0</span>
-            </div>
+      <section class="card positions-section-wide">
+        <div class="accounts-header">
+          <h2>Open positions</h2>
+          <p class="card-caption">
+            All simulated trades opened on the selected account.
+          </p>
+        </div>
 
-            <div class="positions-table-wrapper">
-              <table class="positions-table">
-                <thead>
-                  <tr>
-                    <th>Symbol</th>
-                    <th>Side</th>
-                    <th>Qty</th>
-                    <th>Entry</th>
-                    <th>Last</th>
-                    <th>P/L</th>
-                    <th>Opened</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody id="openPositionsBody">
-                </tbody>
-              </table>
-            </div>
-          </div>
+        <div class="positions-list-header">
+          <span class="muted-small">Showing open positions for this account.</span>
+          <span class="muted-small">
+            <span id="openPositionsCount">0</span> open
+          </span>
+        </div>
+
+        <div class="positions-list" id="openPositionsList">
         </div>
       </section>
 
@@ -272,7 +265,6 @@
           </div>
         </div>
       </div>
-      
     </main>
   </body>
 </html>

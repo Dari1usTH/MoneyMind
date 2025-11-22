@@ -316,45 +316,6 @@
   border-color: #00ffc6;
   box-shadow: 0 0 0 2px rgba(0, 255, 198, 0.18);
 }
-.positions-section {
-  margin-top: 6px;
-}
-
-.positions-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.positions-table-wrapper {
-  max-height: 230px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.positions-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-}
-
-.positions-table th,
-.positions-table td {
-  padding: 4px 2px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-  text-align: right;
-}
-
-.positions-table th:first-child,
-.positions-table td:first-child {
-  text-align: left;
-}
-
-.positions-table th:last-child,
-.positions-table td:last-child {
-  text-align: center;
-}
 
 .pl-buy {
   color: #00ffc6;
@@ -487,4 +448,154 @@
   color: #e6f7ff;
   font-size: 12px;
   cursor: pointer;
+}
+
+.positions-section-wide {
+  margin-top: 16px;
+}
+
+.positions-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #9fb6c7;
+}
+
+.positions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.position-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.35);
+  transition: 0.2s;
+}
+
+.position-row:hover {
+  border-color: rgba(0, 255, 198, 0.6);
+  box-shadow: 0 0 14px rgba(0, 255, 198, 0.4);
+}
+
+.position-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.position-topline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.position-symbol {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.position-side {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.position-subline {
+  font-size: 11px;
+  color: #9fb6c7;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.position-subline span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.position-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.position-opened {
+  font-size: 11px;
+  color: #9fb6c7;
+}
+
+.pl-buy {
+  color: #00ffc6;
+  font-weight: 600;
+}
+
+.pl-sell {
+  color: #ffb347;
+  font-weight: 600;
+}
+
+.pl-positive {
+  color: #00ffc6;
+}
+
+.pl-negative {
+  color: #ff5757;
+}
+
+.link-btn {
+  border: none;
+  background: transparent;
+  color: #00b3ff;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.order-form .primary-btn#placeOrderBtn {
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 0;
+
+  border-radius: 999px;
+  border: none;
+
+  background: linear-gradient(90deg, #00ffc6, #00b3ff);
+  color: #000;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(0, 255, 198, 0.5);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+
+.order-form .primary-btn#placeOrderBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 0 22px rgba(0, 255, 198, 0.8);
+}
+
+.order-form .primary-btn#placeOrderBtn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 0 10px rgba(0, 255, 198, 0.5);
+}
+
+.order-form .primary-btn#placeOrderBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
 }
