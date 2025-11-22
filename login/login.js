@@ -37,23 +37,6 @@ function clearError() {
   successBox.style.display = "none";
 }
 
-function handleAdminLogin(identifier, password, remember) {
-  if (identifier.toLowerCase() === "admin" && password === "Moonshot") {
-    localStorage.setItem("user", "admin");
-    localStorage.setItem("adminLoggedIn", "true");
-    localStorage.setItem("loginRemember", remember ? "1" : "0");
-    
-    localStorage.removeItem("pendingLoginEmail");
-    localStorage.removeItem("resendAttempts");
-    localStorage.removeItem("resendAvailableAt");
-    localStorage.removeItem("loginCodeExpiresAt");
-    
-    window.location.href = "../index.html";
-    return true;
-  }
-  return false;
-}
-
 loginBtn.addEventListener("click", async (e) => {
   e.preventDefault();
   clearError();
@@ -66,17 +49,10 @@ loginBtn.addEventListener("click", async (e) => {
   const remember = document.getElementById("remember").checked;
 
   if (!identifier || !password) {
-    loader.style.display = "none";
-    loginBtn.disabled = false;
     return showError("Please fill in all fields!");
   }
 
-  if (handleAdminLogin(identifier, password, remember)) {
-    loader.style.display = "none";
-    return; 
-  }
-
-  try {
+    try {
     const res = await fetch("http://localhost:3001/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -112,6 +88,7 @@ loginBtn.addEventListener("click", async (e) => {
     console.error(err);
     showError("Server error. Try again later.");
   }
+
 });
 
 document.addEventListener("keydown", (e) => {

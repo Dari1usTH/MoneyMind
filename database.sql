@@ -84,3 +84,47 @@ CREATE TABLE orders (
     INDEX idx_orders_account (account_id, status),
     INDEX idx_orders_symbol (symbol)
 );
+
+CREATE TABLE tickets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    type ENUM('technical', 'platform_bug', 'account_issue', 'feature_request', 'other') NOT NULL,
+    description TEXT NOT NULL,
+    status ENUM('open', 'in_progress', 'closed') DEFAULT 'open',
+    priority ENUM('low', 'medium', 'high', 'urgent') DEFAULT 'medium',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    CONSTRAINT fk_tickets_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE,
+    
+    INDEX idx_tickets_user (user_id),
+    INDEX idx_tickets_status (status),
+    INDEX idx_tickets_priority (priority)
+);
+
+CREATE TABLE ticket_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ticket_id INT NOT NULL,
+    user_id INT NOT NULL,
+    message TEXT NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT fk_ticket_messages_ticket
+      FOREIGN KEY (ticket_id) REFERENCES tickets(id)
+      ON DELETE CASCADE,
+    
+    CONSTRAINT fk_ticket_messages_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE,
+    
+    INDEX idx_ticket_messages_ticket (ticket_id),
+    INDEX idx_ticket_messages_user (user_id)
+);
+
+DELETE FROM users WHERE username = 'admin';
+INSERT INTO users (first_name, last_name, username, email, password, birth_date, phone_number, created_at) 
+VALUES ('Admin', 'User', 'admin', 'admin@moneymind.com', 'Moonshot', NULL, NULL, NOW());

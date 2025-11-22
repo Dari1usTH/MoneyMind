@@ -1956,5 +1956,656 @@ app.post('/api/orders/:id/close', authMiddleware, async (req, res) => {
   }
 });
 
+app.post('/api/admin-auth', authLimiter, async (req, res) => {
+  try {
+    const { username, password, remember } = req.body || {};
+
+    if (!username || !password) {
+      return res.json({ success: false, message: "Username and password are required!" });
+    }
+
+    console.log('Admin login attempt:', username, 'Password:', password); 
+
+    const conn = await pool.getConnection();
+    let adminUser;
+    try {
+      const [rows] = await conn.execute(
+        'SELECT id, username, email, first_name, password FROM users WHERE username = ? LIMIT 1',
+        [username]
+      );
+      adminUser = rows[0];
+    } finally {
+      conn.release();
+    }
+
+    console.log('Admin user found:', adminUser); 
+
+    if (!adminUser) {
+      return res.json({
+        success: false,
+        message: "Invalid admin credentials.",
+      });
+    }
+
+    if (password !== adminUser.password) {
+      console.log('Password mismatch. Expected:', adminUser.password, 'Got:', password); 
+      return res.json({
+        success: false,
+        message: "Invalid admin credentials.",
+      });
+    }
+
+    console.log('Admin login SUCCESS!'); 
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    };
+
+    if (remember) {
+      cookieOptions.maxAge = 30 * 24 * 60 * 60 * 1000; 
+    }
+
+    res.cookie("session", adminUser.id, cookieOptions);
+
+    return res.json({
+      success: true,
+      message: "Admin authentication successful!",
+      username: adminUser.username,
+      first_name: adminUser.first_name,
+      email: adminUser.email
+    });
+
+  } catch (err) {
+    console.error('Admin auth error:', err);
+    return res.json({
+      success: false,
+      message: "Server error during admin authentication.",
+    });
+  }
+});
+
+app.get('/api/tickets', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const statusFilter = req.query.status || 'all';
+    const typeFilter = req.query.type || 'all';
+
+    const conn = await pool.getConnection();
+    let rows;
+    try {
+      let query = `
+        SELECT t.*, 
+               COUNT(tm.id) as message_count,
+               MAX(tm.created_at) as last_message_date
+        FROM tickets t
+        LEFT JOIN ticket_messages tm ON t.id = tm.ticket_id
+        WHERE t.user_id = ?
+      `;
+      
+      const params = [userId];
+      
+      if (statusFilter !== 'all') {
+        query += ' AND t.status = ?';
+        params.push(statusFilter);
+      }
+      
+      if (typeFilter !== 'all') {
+        query += ' AND t.type = ?';
+        params.push(typeFilter);
+      }
+      
+      query += ' GROUP BY t.id ORDER BY t.updated_at DESC';
+      
+      const [data] = await conn.execute(query, params);
+      rows = data;
+    } finally {
+      conn.release();
+    }
+
+    return res.json({
+      success: true,
+      tickets: rows,
+    });
+  } catch (err) {
+    console.error('GET /api/tickets error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not load tickets.',
+    });
+  }
+});
+
+app.post('/api/tickets', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { title, type, description } = req.body || {};
+
+    if (!title || !type || !description) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title, type and description are required.',
+      });
+    }
+
+    const allowedTypes = ['technical', 'platform_bug', 'account_issue', 'feature_request', 'other'];
+    if (!allowedTypes.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ticket type.',
+      });
+    }
+
+    const priority = type === 'platform_bug' ? 'high' : 'medium';
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      const [ticketResult] = await conn.execute(
+        'INSERT INTO tickets (user_id, title, type, description, priority) VALUES (?, ?, ?, ?, ?)',
+        [userId, title, type, description, priority]
+      );
+      
+      const ticketId = ticketResult.insertId;
+
+      await conn.execute(
+        'INSERT INTO ticket_messages (ticket_id, user_id, message, is_admin) VALUES (?, ?, ?, ?)',
+        [ticketId, userId, description, false]
+      );
+      const [ticketRows] = await conn.execute(
+        `SELECT t.*, 
+                u.first_name, 
+                u.last_name 
+         FROM tickets t
+         LEFT JOIN users u ON t.user_id = u.id
+         WHERE t.id = ?`,
+        [ticketId]
+      );
+
+      await conn.commit();
+
+      return res.status(201).json({
+        success: true,
+        ticket: ticketRows[0],
+      });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('POST /api/tickets error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not create ticket.',
+    });
+  }
+});
+
+app.get('/api/tickets/:id', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const ticketId = Number(req.params.id);
+
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ticket ID.',
+      });
+    }
+
+    const conn = await pool.getConnection();
+    let ticket, messages;
+    try {
+      const [ticketRows] = await conn.execute(
+        `SELECT t.*, 
+                u.first_name, 
+                u.last_name 
+         FROM tickets t
+         LEFT JOIN users u ON t.user_id = u.id
+         WHERE t.id = ? AND t.user_id = ?`,
+        [ticketId, userId]
+      );
+
+      if (!ticketRows.length) {
+        return res.status(404).json({
+          success: false,
+          message: 'Ticket not found.',
+        });
+      }
+
+      ticket = ticketRows[0];
+
+      const [messageRows] = await conn.execute(
+        `SELECT tm.*, 
+                u.first_name, 
+                u.last_name 
+         FROM ticket_messages tm
+         LEFT JOIN users u ON tm.user_id = u.id
+         WHERE tm.ticket_id = ?
+         ORDER BY tm.created_at ASC`,
+        [ticketId]
+      );
+
+      messages = messageRows;
+    } finally {
+      conn.release();
+    }
+
+    return res.json({
+      success: true,
+      ticket: ticket,
+      messages: messages,
+    });
+  } catch (err) {
+    console.error('GET /api/tickets/:id error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not load ticket details.',
+    });
+  }
+});
+
+app.post('/api/tickets/:id/messages', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const ticketId = Number(req.params.id);
+    const { message } = req.body || {};
+
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ticket ID.',
+      });
+    }
+
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message cannot be empty.',
+      });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      const [ticketRows] = await conn.execute(
+        'SELECT id, status FROM tickets WHERE id = ? AND user_id = ?',
+        [ticketId, userId]
+      );
+
+      if (!ticketRows.length) {
+        await conn.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'Ticket not found.',
+        });
+      }
+
+      const ticket = ticketRows[0];
+      
+      if (ticket.status === 'closed') {
+        await conn.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot add message to closed ticket.',
+        });
+      }
+
+      await conn.execute(
+        'INSERT INTO ticket_messages (ticket_id, user_id, message, is_admin) VALUES (?, ?, ?, ?)',
+        [ticketId, userId, message.trim(), false]
+      );
+
+      await conn.execute(
+        'UPDATE tickets SET updated_at = NOW() WHERE id = ?',
+        [ticketId]
+      );
+
+      await conn.commit();
+
+      return res.json({
+        success: true,
+        message: 'Message added successfully.',
+      });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('POST /api/tickets/:id/messages error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not add message.',
+    });
+  }
+});
+
+async function adminMiddleware(req, res, next) {
+  try {
+    if (!req.user || !req.user.username.toLowerCase().includes('admin')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin access required.',
+      });
+    }
+    next();
+  } catch (err) {
+    console.error('Admin middleware error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error.',
+    });
+  }
+}
+
+app.get('/api/admin/tickets', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const statusFilter = req.query.status || 'all';
+    const typeFilter = req.query.type || 'all';
+    const priorityFilter = req.query.priority || 'all';
+
+    const conn = await pool.getConnection();
+    let rows;
+    try {
+      let query = `
+        SELECT t.*, 
+               u.first_name, 
+               u.last_name,
+               u.username,
+               u.email,
+               COUNT(tm.id) as message_count,
+               SUM(CASE WHEN tm.is_admin = 0 AND tm.created_at > t.updated_at THEN 1 ELSE 0 END) as unread_count
+        FROM tickets t
+        LEFT JOIN users u ON t.user_id = u.id
+        LEFT JOIN ticket_messages tm ON t.id = tm.ticket_id
+        WHERE 1=1
+      `;
+      
+      const params = [];
+      
+      if (statusFilter !== 'all') {
+        query += ' AND t.status = ?';
+        params.push(statusFilter);
+      }
+      
+      if (typeFilter !== 'all') {
+        query += ' AND t.type = ?';
+        params.push(typeFilter);
+      }
+      
+      if (priorityFilter !== 'all') {
+        query += ' AND t.priority = ?';
+        params.push(priorityFilter);
+      }
+      
+      query += ` GROUP BY t.id 
+                ORDER BY 
+                  CASE WHEN t.priority = 'urgent' THEN 0 
+                       WHEN t.priority = 'high' THEN 1
+                       WHEN t.priority = 'medium' THEN 2
+                       ELSE 3 END,
+                  t.updated_at DESC`;
+      
+      const [data] = await conn.execute(query, params);
+      rows = data;
+    } finally {
+      conn.release();
+    }
+
+    return res.json({
+      success: true,
+      tickets: rows,
+    });
+  } catch (err) {
+    console.error('GET /api/admin/tickets error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not load tickets.',
+    });
+  }
+});
+
+app.get('/api/admin/tickets/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ticket ID.',
+      });
+    }
+
+    const conn = await pool.getConnection();
+    let ticket, messages;
+    try {
+      const [ticketRows] = await conn.execute(
+        `SELECT t.*, 
+                u.first_name, 
+                u.last_name,
+                u.username,
+                u.email
+         FROM tickets t
+         LEFT JOIN users u ON t.user_id = u.id
+         WHERE t.id = ?`,
+        [ticketId]
+      );
+
+      if (!ticketRows.length) {
+        return res.status(404).json({
+          success: false,
+          message: 'Ticket not found.',
+        });
+      }
+
+      ticket = ticketRows[0];
+
+      const [messageRows] = await conn.execute(
+        `SELECT tm.*, 
+                u.first_name, 
+                u.last_name 
+         FROM ticket_messages tm
+         LEFT JOIN users u ON tm.user_id = u.id
+         WHERE tm.ticket_id = ?
+         ORDER BY tm.created_at ASC`,
+        [ticketId]
+      );
+
+      messages = messageRows;
+    } finally {
+      conn.release();
+    }
+
+    return res.json({
+      success: true,
+      ticket: ticket,
+      messages: messages,
+    });
+  } catch (err) {
+    console.error('GET /api/admin/tickets/:id error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not load ticket details.',
+    });
+  }
+});
+
+app.put('/api/admin/tickets/:id/status', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+    const { status } = req.body || {};
+
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ticket ID.',
+      });
+    }
+
+    const allowedStatuses = ['open', 'in_progress', 'closed'];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status.',
+      });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      const [result] = await conn.execute(
+        'UPDATE tickets SET status = ?, updated_at = NOW() WHERE id = ?',
+        [status, ticketId]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Ticket not found.',
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Ticket status updated successfully.',
+      });
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('PUT /api/admin/tickets/:id/status error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not update ticket status.',
+    });
+  }
+});
+
+app.put('/api/admin/tickets/:id/priority', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+    const { priority } = req.body || {};
+
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ticket ID.',
+      });
+    }
+
+    const allowedPriorities = ['low', 'medium', 'high', 'urgent'];
+    if (!allowedPriorities.includes(priority)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid priority.',
+      });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      const [result] = await conn.execute(
+        'UPDATE tickets SET priority = ?, updated_at = NOW() WHERE id = ?',
+        [priority, ticketId]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Ticket not found.',
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Ticket priority updated successfully.',
+      });
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('PUT /api/admin/tickets/:id/priority error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not update ticket priority.',
+    });
+  }
+});
+
+app.post('/api/admin/tickets/:id/messages', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const ticketId = Number(req.params.id);
+    const { message } = req.body || {};
+
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ticket ID.',
+      });
+    }
+
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message cannot be empty.',
+      });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      const [ticketRows] = await conn.execute(
+        'SELECT id, status FROM tickets WHERE id = ?',
+        [ticketId]
+      );
+
+      if (!ticketRows.length) {
+        await conn.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'Ticket not found.',
+        });
+      }
+
+      const ticket = ticketRows[0];
+
+      await conn.execute(
+        'INSERT INTO ticket_messages (ticket_id, user_id, message, is_admin) VALUES (?, ?, ?, ?)',
+        [ticketId, adminId, message.trim(), true]
+      );
+
+      const newStatus = ticket.status === 'open' ? 'in_progress' : ticket.status;
+      await conn.execute(
+        'UPDATE tickets SET updated_at = NOW(), status = ? WHERE id = ?',
+        [newStatus, ticketId]
+      );
+
+      await conn.commit();
+
+      return res.json({
+        success: true,
+        message: 'Response added successfully.',
+      });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('POST /api/admin/tickets/:id/messages error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not add response.',
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoneyMind - Admin Login</title>
+  <link rel="stylesheet" href="../login/login.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <a href="../index.html" class="back-link">← Back to Home</a>
+  <div class="login-container">
+    <div class="login-box">
+      <h1><span>Admin</span> Panel</h1>
+      <p>Access restricted to authorized personnel only</p>
+      
+      <div id="errorBox" class="error-box" style="display:none;"></div>
+      <div id="successBox" class="success-box" style="display: none;"></div>
+
+      <div class="input-group">
+        <i class="fas fa-user-shield"></i>
+        <input type="text" id="username" placeholder="Admin Username" />
+      </div>
+
+      <div class="input-group">
+        <i class="fas fa-lock"></i>
+        <input type="password" id="password" placeholder="Admin Password" />
+      </div>
+
+      <div class="options">
+        <label><input type="checkbox" id="remember" /> Remember me</label>
+      </div>
+
+      <button id="loginBtn">Access Admin Panel</button>
+
+      <p class="signup-text">
+        Regular user? <a href="../login/login.html">User Login</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
