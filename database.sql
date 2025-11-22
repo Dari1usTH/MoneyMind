@@ -47,3 +47,4 @@ CREATE TABLE watchlists (
     UNIQUE KEY uniq_user_symbol (user_id, symbol),
     INDEX idx_watchlists_user (user_id)
 );
+

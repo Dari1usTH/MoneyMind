@@ -3,18 +3,20 @@
 -------------------to do --------------
 
 user trebuie sa fie logat
-calculator dobanda compusa
+xoy grafic 
+
 sa apara $ la grafic
 
 
-xoy grafic 
 
-
+calculator dobanda compusa
+add chaneg account button from invest to index
 ---------------- bug ---------------------
 
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-new style for open positions
-moves open postions to another box
-style for place order button
+
+now a stock when you load invest page it will be loaded
+filter buttons now are working from markets
+chart it will be updated at 1 min interval

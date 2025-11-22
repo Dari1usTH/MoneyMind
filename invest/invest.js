@@ -15,6 +15,7 @@ let watchlist = [];
 let positions = [];
 
 let chartInstance = null;
+let chartRefreshTimer = null;
 
 const INSTRUMENTS = [
   {
@@ -123,6 +124,8 @@ async function initInvestPage() {
   renderMarkets();
   renderWatchlist();
   renderPositions();
+
+  autoSelectInitialInstrument();
 }
 
 async function loadMe() {
@@ -569,6 +572,10 @@ function renderWatchlist() {
   const stocksEl = document.getElementById("watchlistStocks");
   const countEl = document.getElementById("watchlistCount");
 
+  const groupCrypto = document.getElementById("watchlistGroupCrypto");
+  const groupForex = document.getElementById("watchlistGroupForex");
+  const groupStocks = document.getElementById("watchlistGroupStocks");
+
   if (!cryptoEl || !forexEl || !stocksEl) return;
 
   cryptoEl.innerHTML = "";
@@ -577,8 +584,7 @@ function renderWatchlist() {
 
   const total = watchlist.length;
   if (countEl) {
-    countEl.textContent =
-      total + " item" + (total === 1 ? "" : "s");
+    countEl.textContent = total + " item" + (total === 1 ? "" : "s");
   }
 
   const groups = { crypto: [], forex: [], stocks: [] };
@@ -639,6 +645,20 @@ function renderWatchlist() {
 
       listEl.appendChild(li);
     });
+  }
+
+  const market = getActiveMarketFilter(); 
+
+  if (groupCrypto && groupForex && groupStocks) {
+    if (market === "all") {
+      groupCrypto.style.display = "";
+      groupForex.style.display = "";
+      groupStocks.style.display = "";
+    } else {
+      groupCrypto.style.display = market === "crypto" ? "" : "none";
+      groupForex.style.display = market === "forex" ? "" : "none";
+      groupStocks.style.display = market === "stocks" ? "" : "none";
+    }
   }
 
   renderGroup(cryptoEl, groups.crypto, "No favorite crypto.");
@@ -783,7 +803,7 @@ function selectInstrument(symbolOrInstrument) {
   }
 
   if (chartSubtitle) {
-    chartSubtitle.textContent = "Loading real market data...";
+    chartSubtitle.textContent = "Loading real market data.";
   }
 
   if (ticketSymbol) ticketSymbol.textContent = inst.symbol;
@@ -800,7 +820,8 @@ function selectInstrument(symbolOrInstrument) {
     placeBtn.disabled = false;
   }
 
-  renderChartFromApi();
+  renderChartFromApi();   
+  startChartAutoRefresh();   
 }
 
 function generateChartData(basePrice, points) {
@@ -872,7 +893,7 @@ function renderSimulatedChart() {
   });
 }
 
-function renderChartFromApi() {
+function renderChartFromApi(fromInterval) {
   const canvas = document.getElementById("priceChart");
   const chartSubtitle = document.getElementById("chartSubtitle");
   if (!canvas || !currentInstrument) return;
@@ -880,8 +901,8 @@ function renderChartFromApi() {
   const apiSymbol =
     currentInstrument.apiSymbol || currentInstrument.symbol;
 
-  if (chartSubtitle) {
-    chartSubtitle.textContent = "Loading real market data...";
+  if (chartSubtitle && !fromInterval) {
+    chartSubtitle.textContent = "Loading real market data.";
   }
 
   const url =
@@ -948,7 +969,7 @@ function renderChartFromApi() {
         currentInstrument.last = payload.lastPrice;
       }
 
-      if (chartSubtitle) {
+      if (chartSubtitle && !fromInterval) {
         const lastPrice =
           typeof currentInstrument.last === "number"
             ? currentInstrument.last.toFixed(2)
@@ -962,13 +983,35 @@ function renderChartFromApi() {
     })
     .catch(function (err) {
       console.error("Market data error:", err);
-      if (chartSubtitle) {
+      if (chartSubtitle && !fromInterval) {
         chartSubtitle.textContent =
-          "Real market data could not be loaded. Displaying a simulated chart.";
+          "Could not load real data. Showing a simulated chart.";
       }
       renderSimulatedChart();
     });
 }
+
+function startChartAutoRefresh() {
+  if (chartRefreshTimer) {
+    clearInterval(chartRefreshTimer);
+    chartRefreshTimer = null;
+  }
+
+  chartRefreshTimer = setInterval(function () {
+    if (currentInstrument) {
+      renderChartFromApi(true);
+    }
+  }, 60000); 
+}
+
+function stopChartAutoRefresh() {
+  if (chartRefreshTimer) {
+    clearInterval(chartRefreshTimer);
+    chartRefreshTimer = null;
+  }
+}
+
+window.addEventListener("beforeunload", stopChartAutoRefresh);
 
 function initTimeframeButtons() {
   const container = document;
@@ -1193,4 +1236,20 @@ function closePosition(id) {
   positions[idx].closedAt = new Date().toISOString();
   savePositionsToStorage();
   renderPositions();
+}
+
+function autoSelectInitialInstrument() {
+  if (currentInstrument) return;
+
+  let inst = null;
+
+  if (watchlist && watchlist.length > 0) {
+    inst = watchlist[0]; 
+  } else if (INSTRUMENTS && INSTRUMENTS.length > 0) {
+    inst = INSTRUMENTS[0];
+  }
+
+  if (inst) {
+    selectInstrument(inst);
+  }
 }
