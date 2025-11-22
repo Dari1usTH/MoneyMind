@@ -2,10 +2,6 @@
 
 -------------------to do --------------
 
-xoy grafic 
-sa apara $ la grafic
-notificari invest
-
 calculator dobanda compusa
 add chaneg account button from invest to index
 ---------------- bug ---------------------
@@ -13,3 +9,5 @@ add chaneg account button from invest to index
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
+added notify for inves page 
+created navbar for support page

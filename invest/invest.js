@@ -1082,7 +1082,7 @@ function initOrderForm() {
 
 async function placeOrder() {
   if (!currentInstrument || !selectedAccount) {
-    alert("Select an instrument and make sure you have an account.");
+    showChartMessage("error", "Select an instrument and make sure you have an account.");
     return;
   }
 
@@ -1103,7 +1103,7 @@ async function placeOrder() {
   const tp = tpInput && tpInput.value ? Number(tpInput.value) : null;
 
   if (!qty || qty <= 0 || !price || price <= 0) {
-    alert("Please enter a valid quantity and price.");
+    showChartMessage("error", "Please enter a valid quantity and price.");
     return;
   }
 
@@ -1134,7 +1134,7 @@ async function placeOrder() {
     const data = await res.json();
     if (!res.ok || !data.success) {
       console.error("placeOrder API error:", data);
-      alert(data.message || "Could not place order.");
+      showChartMessage("error", data.message || "Could not place order.");
       return;
     }
 
@@ -1157,6 +1157,11 @@ async function placeOrder() {
     positions.unshift(position);
     renderPositions();
 
+    showChartMessage(
+      "success",
+      `Opened ${side.toUpperCase()} ${qty} ${currentInstrument.symbol} @ ${price.toFixed(2)}`
+    );
+
     if (qtyInput) qtyInput.value = "";
     if (slInput) slInput.value = "";
     if (tpInput) tpInput.value = "";
@@ -1175,7 +1180,7 @@ async function placeOrder() {
     }
   } catch (err) {
     console.error("placeOrder error:", err);
-    alert("Server error while placing order.");
+    showChartMessage("error", "Server error while placing order.");
   }
 }
 
@@ -1298,11 +1303,12 @@ async function closePosition(id) {
     const data = await res.json();
     if (!res.ok || !data.success) {
       console.error("closePosition API error:", data);
-      alert(data.message || "Could not close order.");
+      showChartMessage("error", data.message || "Could not close order.");
       return;
     }
     positions.splice(idx, 1);
     renderPositions();
+    showChartMessage("success", "Position closed successfully.");
 
     if (data.account) {
       const updatedAcc = data.account;
@@ -1319,7 +1325,7 @@ async function closePosition(id) {
     }
   } catch (err) {
     console.error("closePosition error:", err);
-    alert("Server error while closing order.");
+    showChartMessage("error", "Server error while closing order.");
   }
 }
 
@@ -1337,4 +1343,24 @@ function autoSelectInitialInstrument() {
   if (inst) {
     selectInstrument(inst);
   }
+}
+
+function showChartMessage(type, message) {
+  const box = document.getElementById("chartMessageBox");
+  if (!box) return;
+
+  box.className = "chart-msg-box " + (type === "success" ? "chart-msg-success" : "chart-msg-error");
+  box.textContent = message;
+  box.style.display = "block";
+
+  setTimeout(() => {
+    box.style.opacity = "1";
+  }, 20);
+
+  setTimeout(() => {
+    box.style.opacity = "0";
+    setTimeout(() => {
+      box.style.display = "none";
+    }, 300);
+  }, 6000);
 }

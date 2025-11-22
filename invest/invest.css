@@ -599,3 +599,35 @@
   cursor: not-allowed;
   box-shadow: none;
 }
+
+.chart-msg-box {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  animation: fadeIn 0.35s ease;
+}
+
+.chart-msg-success {
+  background-color: rgba(40, 167, 69, 0.18);
+  border: 1px solid #28a745;
+  color: #d4edda;
+}
+
+.chart-msg-error {
+  background-color: rgba(255, 0, 0, 0.15);
+  border: 1px solid #ff4b4b;
+  color: #ff6b6b;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
