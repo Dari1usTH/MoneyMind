@@ -52,10 +52,10 @@ function renderNews(articles) {
     meta.className = "news-meta";
 
     const srcSpan = document.createElement("span");
-    if (article.source) srcSpan.textContent = article.source;
+    if (article.source) srcSpan.textContent = `Source: ${article.source}`;
 
     const timeSpan = document.createElement("span");
-    if (article.publishedAt) timeSpan.textContent = timeAgo(article.publishedAt);
+    if (article.publishedAt) timeSpan.textContent = `Date: ${timeAgo(article.publishedAt)}`;
 
     meta.appendChild(srcSpan);
     meta.appendChild(timeSpan);
@@ -240,4 +240,3 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
-

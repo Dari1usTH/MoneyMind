@@ -4,6 +4,7 @@ const SELECTED_ACCOUNT_KEY = "mm_selected_account_id";
 let accounts = [];
 let selectedAccount = null;
 let currentNewsCategory = 'forex';
+let positions = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -27,10 +28,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     await loadAccounts();
+    await loadPositions();
     renderSelectedAccountChip();
+    updateDashboardStats();
     
     initNews();
     loadNews();
+    initProfileButton(); 
 
   } catch (err) {
     console.error(err);
@@ -72,6 +76,50 @@ async function loadAccounts() {
     }
   } catch (err) {
     console.error(err);
+  }
+}
+
+async function loadPositions() {
+  try {
+    const res = await fetch(API_BASE + "/api/orders", { credentials: "include" });
+    const data = await res.json();
+    if (!data.success) return;
+
+    positions = data.orders || [];
+  } catch (err) {
+    console.error(err);
+    positions = [];
+  }
+}
+
+function updateDashboardStats() {
+  const totalBalanceEl = document.querySelector('.cards-row .stat-card:nth-child(1) .card-value');
+  if (totalBalanceEl && selectedAccount) {
+    const balance = Number(selectedAccount.balance || 0);
+    totalBalanceEl.textContent = balance.toFixed(2) + " " + (selectedAccount.currency || "");
+  }
+
+  const monthlyPLEl = document.querySelector('.cards-row .stat-card:nth-child(2) .card-value');
+  if (monthlyPLEl && selectedAccount) {
+    const balance = Number(selectedAccount.balance || 0);
+    const initialBalance = Number(selectedAccount.initial_balance || 0);
+    const profitLoss = balance - initialBalance;
+    
+    monthlyPLEl.textContent = (profitLoss >= 0 ? "+" : "") + profitLoss.toFixed(2);
+    
+    monthlyPLEl.className = profitLoss >= 0 ? "card-value profit" : "card-value loss";
+  }
+
+  const accountsNumberEl = document.querySelector('.cards-row .stat-card:nth-child(3) .card-value');
+  if (accountsNumberEl) {
+    accountsNumberEl.textContent = accounts.length;
+    accountsNumberEl.className = "card-value";
+  }
+
+  const activePositionsEl = document.querySelector('.cards-row .stat-card:nth-child(4) .card-value');
+  if (activePositionsEl) {
+    const activePositions = positions.filter(p => p.status === 'open').length;
+    activePositionsEl.textContent = activePositions;
   }
 }
 
@@ -147,6 +195,15 @@ function initNews() {
     if (newsRefreshBtn) {
         newsRefreshBtn.addEventListener('click', () => {
             loadNews(currentNewsCategory);
+        });
+    }
+}
+
+function initProfileButton() {
+    const goProfileBtn = document.getElementById('goProfileBtn');
+    if (goProfileBtn) {
+        goProfileBtn.addEventListener('click', function() {
+            window.location.href = "../profile/profile.html";
         });
     }
 }
