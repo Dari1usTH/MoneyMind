@@ -196,6 +196,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (Number.isFinite(h) && h > 300) {
         newsCard.style.height = h + "px";
       }
+    } else {
+      newsCard.style.height = "420px";
     }
 
     let startY = 0;
