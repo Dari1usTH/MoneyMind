@@ -15,7 +15,10 @@ async function checkAdminAccess() {
 
         const data = await response.json();
                 
-        if (data.success && data.user && data.user.username.toLowerCase().includes('admin')) {
+        if (data.success && data.user && 
+            (data.user.role === 'admin' || 
+             data.user.username.toLowerCase() === 'admin' ||
+             data.user.username.toLowerCase().includes('admin'))) {
             document.getElementById('adminContent').classList.remove('hidden');
             document.getElementById('accessDenied').classList.add('hidden');
             loadAdminTickets();

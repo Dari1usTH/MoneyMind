@@ -39,7 +39,7 @@ if (!username) {
     localStorage.removeItem("adminLoggedIn");
     localStorage.removeItem("userRole");
     localStorage.removeItem("loginRemember");
-    
     location.reload();
+    window.location.href = "../index.html";
   });
 }

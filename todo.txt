@@ -10,7 +10,4 @@ support mesage team not box
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-login/logout vizibil in tickets
-modifie tickets ( developing ) 
-created new api in backend for  tickets page 
-added tickets page in navbar for all pages
+logout button ticket

@@ -138,15 +138,18 @@ function updateStatistics(tickets) {
     const urgentTickets = tickets.filter(t => t.priority === 'urgent' && t.status !== 'closed').length;
     const inProgressTickets = tickets.filter(t => t.status === 'in_progress').length;
     
-    const respondedTickets = tickets.filter(t => 
-        t.status !== 'open' && t.message_count > 0
-    ).length;
-    const responseRate = tickets.length > 0 ? Math.round((respondedTickets / tickets.length) * 100) : 0;
+    const totalTicketsWithMessages = tickets.filter(t => t.message_count > 0).length;
+    const responseRate = tickets.length > 0 ? Math.round((totalTicketsWithMessages / tickets.length) * 100) : 0;
     
-    document.getElementById('openTicketsCount').textContent = openTickets;
-    document.getElementById('urgentTicketsCount').textContent = urgentTickets;
-    document.getElementById('inProgressCount').textContent = inProgressTickets;
-    document.getElementById('responseRate').textContent = `${responseRate}%`;
+    const openElement = document.getElementById('openTicketsCount');
+    const urgentElement = document.getElementById('urgentTicketsCount');
+    const progressElement = document.getElementById('inProgressCount');
+    const rateElement = document.getElementById('responseRate');
+    
+    if (openElement) openElement.textContent = openTickets;
+    if (urgentElement) urgentElement.textContent = urgentTickets;
+    if (progressElement) progressElement.textContent = inProgressTickets;
+    if (rateElement) rateElement.textContent = `${responseRate}%`;
 }
 
 function getTicketRowClass(ticket) {
@@ -507,3 +510,27 @@ window.onclick = function(event) {
         closeCreateTicketModal();
     }
 }
+
+function isOnline() {
+    return navigator.onLine;
+}
+
+function setupOnlineHandlers() {
+    window.addEventListener('online', function() {
+        showNotification('Connection restored', 'success');
+        loadAdminTickets();
+    });
+    
+    window.addEventListener('offline', function() {
+        showNotification('You are offline', 'error');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setupOnlineHandlers();
+    
+    const createTicketForm = document.getElementById('createTicketForm');
+    if (createTicketForm) {
+        createTicketForm.addEventListener('submit', handleCreateTicket);
+    }
+});
