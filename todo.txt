@@ -2,10 +2,14 @@
 
 -------------------to do --------------
 
-calculator dobanda compusa
-add chaneg account button from invest to index
+cand face conversatie sa fie style la acel bar
+style la meniu de ales
+
 ---------------- bug ---------------------
 
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
+fix login/logout button not showing in support page
+daca dai logout sa nu mai apara mesaj you are logged already as an admin
+added delete account button in profile 

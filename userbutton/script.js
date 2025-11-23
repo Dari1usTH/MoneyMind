@@ -1,15 +1,20 @@
 const logoutBtn = document.getElementById("logoutBtn");
 const userNameDisplay = document.getElementById("userName");
 const username = localStorage.getItem("user");
+const isSupportPage = window.location.pathname.includes("/support/");
 
 if (!username) {
-  userNameDisplay.textContent = "Guest";
+  if (!isSupportPage) {
+    userNameDisplay.textContent = "Guest";
+  }
   logoutBtn.textContent = "Login";
   logoutBtn.addEventListener("click", () => {
     window.location.href = "../login/login.html";
   });
 } else {
-  userNameDisplay.textContent = username;
+  if (!isSupportPage) {
+    userNameDisplay.textContent = username;
+  }
   logoutBtn.textContent = "Logout";
 
   logoutBtn.addEventListener("click", async () => {
@@ -23,7 +28,11 @@ if (!username) {
     }
 
     localStorage.removeItem("user");
-    localStorage.removeItem("mm_selected_account_id"); 
+    localStorage.removeItem("mm_selected_account_id");
+    localStorage.removeItem("adminLoggedIn");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("loginRemember");
+    
     location.reload();
   });
-} 
+}

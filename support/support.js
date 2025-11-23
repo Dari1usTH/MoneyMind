@@ -1,31 +1,103 @@
 const API_BASE = "http://localhost:3001";
+const LOGIN_PATH = "/login/login.html";
 
-let adminTickets = [];
-let currentAdminTicketId = null;
+let userTickets = [];
+let currentTicketId = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadAdminTickets();
-    setupAdminEventListeners();
+    checkAuth();
+    loadUserTickets();
+    setupEventListeners();
 });
 
-function setupAdminEventListeners() {
-    const refreshBtn = document.querySelector('.primary-ghost');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', refreshTickets);
+async function checkAuth() {
+    try {
+        const response = await fetch(`${API_BASE}/api/me`, {
+            credentials: 'include'
+        });
+
+        if (response.status === 401) {
+            window.location.href = LOGIN_PATH;
+            return;
+        }
+
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            window.location.href = LOGIN_PATH;
+            return;
+        }
+
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = LOGIN_PATH;
     }
 }
 
-async function loadAdminTickets() {
+function setupEventListeners() {
+    const createTicketForm = document.getElementById('createTicketForm');
+    if (createTicketForm) {
+        createTicketForm.addEventListener('submit', handleCreateTicket);
+    }
+}
+
+function showCreateTicket() {
+    document.getElementById('createTicketSection').style.display = 'block';
+}
+
+function hideCreateTicket() {
+    document.getElementById('createTicketSection').style.display = 'none';
+    document.getElementById('createTicketForm').reset();
+}
+
+async function handleCreateTicket(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const ticketData = {
+        title: formData.get('title'),
+        type: formData.get('type'),
+        description: formData.get('description')
+    };
+
     try {
-        const statusFilter = document.getElementById('adminStatusFilter')?.value || 'all';
-        const typeFilter = document.getElementById('adminTypeFilter')?.value || 'all';
-        const priorityFilter = document.getElementById('adminPriorityFilter')?.value || 'all';
+        const response = await fetch(`${API_BASE}/api/tickets`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(ticketData)
+        });
+
+        if (response.status === 401) {
+            window.location.href = LOGIN_PATH;
+            return;
+        }
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            showNotification('Ticket created successfully!', 'success');
+            hideCreateTicket();
+            loadUserTickets();
+        } else {
+            throw new Error(result.message || 'Failed to create ticket');
+        }
+    } catch (error) {
+        console.error('Error creating ticket:', error);
+        showNotification(error.message || 'Error creating ticket. Please try again.', 'error');
+    }
+}
+
+async function loadUserTickets() {
+    try {
+        const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+        const typeFilter = document.getElementById('typeFilter')?.value || 'all';
         
-        let url = `${API_BASE}/api/admin/tickets`;
+        let url = `${API_BASE}/api/tickets`;
         const params = new URLSearchParams();
         if (statusFilter !== 'all') params.append('status', statusFilter);
         if (typeFilter !== 'all') params.append('type', typeFilter);
-        if (priorityFilter !== 'all') params.append('priority', priorityFilter);
         
         if (params.toString()) {
             url += '?' + params.toString();
@@ -34,116 +106,121 @@ async function loadAdminTickets() {
         const response = await fetch(url, {
             credentials: 'include'
         });
+
+        if (response.status === 401) {
+            window.location.href = LOGIN_PATH;
+            return;
+        }
+
         const result = await response.json();
 
         if (response.ok && result.success) {
-            adminTickets = result.tickets || [];
-            displayAdminTickets();
-            updateTicketStats();
+            userTickets = result.tickets || [];
+            displayUserTickets();
         } else {
             throw new Error(result.message || 'Failed to load tickets');
         }
     } catch (error) {
         console.error('Error loading tickets:', error);
-        document.getElementById('adminTicketsList').innerHTML = 
+        document.getElementById('ticketsList').innerHTML = 
             '<div class="empty-state">Error loading tickets. Please refresh the page.</div>';
     }
 }
 
-function displayAdminTickets() {
-    const statusFilter = document.getElementById('adminStatusFilter')?.value || 'all';
-    const typeFilter = document.getElementById('adminTypeFilter')?.value || 'all';
-    const priorityFilter = document.getElementById('adminPriorityFilter')?.value || 'all';
-    const sortFilter = document.getElementById('adminSortFilter')?.value || 'newest';
+function displayUserTickets() {
+    const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+    const typeFilter = document.getElementById('typeFilter')?.value || 'all';
     
-    let filteredTickets = adminTickets.filter(ticket => 
+    let filteredTickets = userTickets.filter(ticket => 
         (statusFilter === 'all' || ticket.status === statusFilter) &&
-        (typeFilter === 'all' || ticket.type === typeFilter) &&
-        (priorityFilter === 'all' || ticket.priority === priorityFilter)
+        (typeFilter === 'all' || ticket.type === typeFilter)
     );
 
-    filteredTickets.sort((a, b) => {
-        switch (sortFilter) {
-            case 'oldest':
-                return new Date(a.created_at) - new Date(b.created_at);
-            case 'priority':
-                const priorityOrder = { 'urgent': 0, 'high': 1, 'medium': 2, 'low': 3 };
-                return priorityOrder[a.priority] - priorityOrder[b.priority];
-            case 'updated':
-                return new Date(b.updated_at) - new Date(a.updated_at);
-            default:
-                return new Date(b.created_at) - new Date(a.created_at);
-        }
-    });
+    const openTickets = filteredTickets.filter(ticket => ticket.status !== 'closed');
+    const closedTickets = filteredTickets.filter(ticket => ticket.status === 'closed');
 
-    const container = document.getElementById('adminTicketsList');
-    if (!container) return;
-    
-    if (filteredTickets.length === 0) {
-        container.innerHTML = '<div class="empty-state">No tickets match your filters</div>';
-        return;
+    const openContainer = document.getElementById('ticketsList');
+    if (openContainer) {
+        if (openTickets.length === 0) {
+            openContainer.innerHTML = '<div class="empty-state">No open tickets found</div>';
+        } else {
+            openContainer.innerHTML = openTickets.map(ticket => `
+                <div class="ticket-item ${ticket.status === 'open' && hasUnreadMessages(ticket) ? 'unread' : ''}" onclick="openTicketModal(${ticket.id})">
+                    <div class="ticket-info">
+                        <div class="ticket-header">
+                            <div class="ticket-title">${escapeHtml(ticket.title)}</div>
+                            <div class="ticket-meta">
+                                <span class="ticket-type">${formatTicketType(ticket.type)}</span>
+                                <span class="ticket-priority priority-${ticket.priority}">${formatPriority(ticket.priority)}</span>
+                            </div>
+                        </div>
+                        <div class="ticket-description">${escapeHtml(ticket.description)}</div>
+                        <div class="ticket-dates">
+                            <span>Created: ${formatDate(ticket.created_at)}</span>
+                            ${ticket.updated_at !== ticket.created_at ? `<span>Updated: ${formatDate(ticket.updated_at)}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="ticket-status">
+                        <span class="status-badge status-${ticket.status}">${formatStatus(ticket.status)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
     }
 
-    container.innerHTML = filteredTickets.map(ticket => `
-        <div class="admin-ticket-item ${getTicketRowClass(ticket)}" onclick="openAdminTicketModal(${ticket.id})">
-            <div class="admin-ticket-info">
-                <div class="admin-ticket-header">
-                    <div class="admin-ticket-title">${escapeHtml(ticket.title)}</div>
-                    <div class="admin-ticket-user">${escapeHtml(ticket.first_name ? `${ticket.first_name} ${ticket.last_name}` : `User #${ticket.user_id}`)}</div>
+    const closedContainer = document.getElementById('closedTicketsList');
+    if (closedContainer) {
+        if (closedTickets.length === 0) {
+            closedContainer.innerHTML = '<div class="empty-state">No closed tickets</div>';
+        } else {
+            closedContainer.innerHTML = closedTickets.map(ticket => `
+                <div class="ticket-item closed" onclick="openTicketModal(${ticket.id})">
+                    <div class="ticket-info">
+                        <div class="ticket-header">
+                            <div class="ticket-title">${escapeHtml(ticket.title)}</div>
+                            <div class="ticket-meta">
+                                <span class="ticket-type">${formatTicketType(ticket.type)}</span>
+                            </div>
+                        </div>
+                        <div class="ticket-dates">
+                            <span>Created: ${formatDate(ticket.created_at)}</span>
+                            <span>Closed: ${formatDate(ticket.updated_at)}</span>
+                        </div>
+                    </div>
+                    <div class="ticket-status">
+                        <span class="status-badge status-closed">CLOSED</span>
+                    </div>
                 </div>
-                <div class="admin-ticket-meta">
-                    <span class="admin-ticket-type">${formatTicketType(ticket.type)}</span>
-                    <span class="admin-ticket-priority priority-${ticket.priority}">${formatPriority(ticket.priority)}</span>
-                    <span>Created: ${formatDate(ticket.created_at)}</span>
-                    <span>Updated: ${formatDate(ticket.updated_at)}</span>
-                </div>
-                <div class="admin-ticket-description">${escapeHtml(ticket.description)}</div>
-            </div>
-            <div class="admin-ticket-status">
-                <span class="admin-status-badge status-${ticket.status}">${formatStatus(ticket.status)}</span>
-                <span class="admin-ticket-date">#${ticket.id}</span>
-            </div>
-        </div>
-    `).join('');
-}
-
-function getTicketRowClass(ticket) {
-    if (ticket.priority === 'urgent') return 'urgent';
-    if (ticket.status === 'open' && hasUnreadMessages(ticket)) return 'unread';
-    return '';
+            `).join('');
+        }
+    }
 }
 
 function hasUnreadMessages(ticket) {
     return (ticket.unread_count || 0) > 0;
 }
 
-function filterAdminTickets() {
-    loadAdminTickets();
+function filterTickets() {
+    loadUserTickets();
 }
 
-function updateTicketStats() {
-    const openTickets = adminTickets.filter(t => t.status === 'open').length;
-    const inProgressTickets = adminTickets.filter(t => t.status === 'in_progress').length;
-    const urgentTickets = adminTickets.filter(t => t.priority === 'urgent' && t.status !== 'closed').length;
-    
-    const statsElement = document.getElementById('ticketStats');
-    if (statsElement) {
-        statsElement.textContent = 
-            `${openTickets} Open, ${inProgressTickets} In Progress, ${urgentTickets} Urgent`;
-    }
-}
-
-async function openAdminTicketModal(ticketId) {
-    currentAdminTicketId = ticketId;
+async function openTicketModal(ticketId) {
+    currentTicketId = ticketId;
     
     try {
-        const response = await fetch(`${API_BASE}/api/admin/tickets/${ticketId}`, {
+        const response = await fetch(`${API_BASE}/api/tickets/${ticketId}`, {
             credentials: 'include'
         });
+
+        if (response.status === 401) {
+            window.location.href = LOGIN_PATH;
+            return;
+        }
+
         const result = await response.json();
 
         if (response.ok && result.success) {
-            displayAdminTicketModal(result);
+            displayTicketModal(result);
         } else {
             throw new Error(result.message || 'Failed to load ticket details');
         }
@@ -153,26 +230,16 @@ async function openAdminTicketModal(ticketId) {
     }
 }
 
-function displayAdminTicketModal(ticketData) {
+function displayTicketModal(ticketData) {
     const ticket = ticketData.ticket;
     
-    document.getElementById('adminModalTitle').textContent = ticket.title;
+    document.getElementById('modalTicketTitle').textContent = ticket.title;
     
-    document.getElementById('ticketInfoBar').innerHTML = `
-        <span><strong>User:</strong> ${ticket.first_name ? `${ticket.first_name} ${ticket.last_name}` : `User #${ticket.user_id}`}</span>
-        <span><strong>Type:</strong> ${formatTicketType(ticket.type)}</span>
-        <span><strong>Priority:</strong> <span class="admin-ticket-priority priority-${ticket.priority}">${formatPriority(ticket.priority)}</span></span>
-        <span><strong>Created:</strong> ${formatDateTime(ticket.created_at)}</span>
-    `;
-    
-    document.getElementById('ticketStatus').value = ticket.status;
-    document.getElementById('ticketPriority').value = ticket.priority;
-    
-    const chatContainer = document.getElementById('adminTicketChat');
+    const chatContainer = document.getElementById('ticketChat');
     chatContainer.innerHTML = (ticketData.messages || []).map(message => `
         <div class="message ${message.is_admin ? 'message-support' : 'message-user'}">
             <div class="message-header">
-                <span class="message-sender">${message.is_admin ? 'Support Team' : (message.first_name ? `${message.first_name} ${message.last_name}` : `User #${message.user_id}`)}</span>
+                <span class="message-sender">${message.is_admin ? 'Support Team' : 'You'}</span>
                 <span class="message-time">${formatDateTime(message.created_at)}</span>
             </div>
             <div class="message-content">${escapeHtml(message.message)}</div>
@@ -180,73 +247,29 @@ function displayAdminTicketModal(ticketData) {
     `).join('');
     
     chatContainer.scrollTop = chatContainer.scrollHeight;
-    document.getElementById('adminTicketModal').style.display = 'block';
-}
-
-function closeAdminTicketModal() {
-    document.getElementById('adminTicketModal').style.display = 'none';
-    currentAdminTicketId = null;
-    loadAdminTickets();
-}
-
-async function updateTicketStatus() {
-    const newStatus = document.getElementById('ticketStatus').value;
     
-    try {
-        const response = await fetch(`${API_BASE}/api/admin/tickets/${currentAdminTicketId}/status`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({ status: newStatus })
-        });
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-            throw new Error(result.message || 'Failed to update status');
-        }
-        
-        showNotification('Ticket status updated successfully!', 'success');
-    } catch (error) {
-        console.error('Error updating status:', error);
-        showNotification(error.message || 'Error updating ticket status.', 'error');
+    const replySection = document.getElementById('replySection');
+    if (ticket.status === 'closed') {
+        replySection.style.display = 'none';
+    } else {
+        replySection.style.display = 'block';
     }
-}
-
-async function updateTicketPriority() {
-    const newPriority = document.getElementById('ticketPriority').value;
     
-    try {
-        const response = await fetch(`${API_BASE}/api/admin/tickets/${currentAdminTicketId}/priority`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({ priority: newPriority })
-        });
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-            throw new Error(result.message || 'Failed to update priority');
-        }
-        
-        showNotification('Ticket priority updated successfully!', 'success');
-    } catch (error) {
-        console.error('Error updating priority:', error);
-        showNotification(error.message || 'Error updating ticket priority.', 'error');
-    }
+    document.getElementById('ticketModal').style.display = 'block';
 }
 
-async function sendAdminReply() {
-    const message = document.getElementById('adminReplyMessage').value.trim();
+function closeTicketModal() {
+    document.getElementById('ticketModal').style.display = 'none';
+    currentTicketId = null;
+    loadUserTickets();
+}
+
+async function sendReply() {
+    const message = document.getElementById('replyMessage').value.trim();
     if (!message) return;
 
     try {
-        const response = await fetch(`${API_BASE}/api/admin/tickets/${currentAdminTicketId}/messages`, {
+        const response = await fetch(`${API_BASE}/api/tickets/${currentTicketId}/messages`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -257,11 +280,16 @@ async function sendAdminReply() {
             })
         });
 
+        if (response.status === 401) {
+            window.location.href = LOGIN_PATH;
+            return;
+        }
+
         const result = await response.json();
 
         if (response.ok && result.success) {
-            document.getElementById('adminReplyMessage').value = '';
-            openAdminTicketModal(currentAdminTicketId); 
+            document.getElementById('replyMessage').value = '';
+            openTicketModal(currentTicketId);
         } else {
             throw new Error(result.message || 'Failed to send message');
         }
@@ -269,15 +297,6 @@ async function sendAdminReply() {
         console.error('Error sending message:', error);
         showNotification(error.message || 'Error sending message. Please try again.', 'error');
     }
-}
-
-function refreshTickets() {
-    loadAdminTickets();
-    showNotification('Tickets refreshed', 'success');
-}
-
-function exportTickets() {
-    showNotification('Export feature coming soon!', 'success');
 }
 
 function formatPriority(priority) {
@@ -350,8 +369,8 @@ function showNotification(message, type) {
 }
 
 window.onclick = function(event) {
-    const modal = document.getElementById('adminTicketModal');
+    const modal = document.getElementById('ticketModal');
     if (event.target === modal) {
-        closeAdminTicketModal();
+        closeTicketModal();
     }
 }

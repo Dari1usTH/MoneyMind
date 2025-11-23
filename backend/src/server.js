@@ -1177,7 +1177,7 @@ app.get('/api/markets/ohlc', authMiddleware, async (req, res) => {
     const outputSize = pointsByTf[timeframe] || 200;
 
     const url = new URL(`${MARKET_API_BASE}/time_series`);
-    url.searchParams.set('symbol', symbol);       // ex: BTC/USD
+    url.searchParams.set('symbol', symbol);    
     url.searchParams.set('interval', intervalParam);
     url.searchParams.set('outputsize', String(outputSize));
     url.searchParams.set('apikey', MARKET_API_KEY);
