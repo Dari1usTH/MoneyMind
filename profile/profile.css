@@ -324,3 +324,70 @@
   background-color: #00ffc6;
   color: #000;
 }
+
+.delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #eaf3ff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+  opacity: 0;
+}
+
+.account-card:hover .delete-btn {
+  opacity: 1;
+}
+
+.delete-btn:hover {
+  background: rgba(255, 0, 0, 0.2);
+  color: #ff6b6b;
+  transform: scale(1.1);
+}
+
+.secondary-btn {
+  padding: 10px 24px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 30px;
+  color: #eaf3ff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+  flex: 1;
+}
+
+.secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.danger-btn {
+  padding: 10px 24px;
+  background: linear-gradient(90deg, #ff6b6b, #ff4757);
+  border: none;
+  border-radius: 30px;
+  color: #000;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+  flex: 1;
+}
+
+.danger-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.4);
+}
+
+.account-card {
+  position: relative; 
+}

@@ -10,6 +10,5 @@ style la meniu de ales
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-fix login/logout button not showing in support page
-daca dai logout sa nu mai apara mesaj you are logged already as an admin
 added delete account button in profile 
+now tickets page is available only if you are logged in as an admin

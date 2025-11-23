@@ -336,3 +336,37 @@
         width: 100%;
     }
 }
+
+.access-denied {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    text-align: center;
+}
+
+.access-denied-content {
+    max-width: 500px;
+    padding: 40px;
+}
+
+.access-denied-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.access-denied h2 {
+    color: #ff6b6b;
+    margin-bottom: 16px;
+    font-size: 28px;
+}
+
+.access-denied p {
+    color: #9fb6c7;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.hidden {
+    display: none !important;
+}

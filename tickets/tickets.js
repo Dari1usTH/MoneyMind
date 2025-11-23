@@ -3,11 +3,6 @@ const API_BASE = "http://localhost:3001";
 let adminTickets = [];
 let currentAdminTicketId = null;
 
-document.addEventListener('DOMContentLoaded', function() {
-    loadAdminTickets();
-    setupAdminEventListeners();
-});
-
 function setupAdminEventListeners() {
     const refreshBtn = document.querySelector('.primary-ghost');
     if (refreshBtn) {

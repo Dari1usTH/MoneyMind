@@ -312,3 +312,159 @@ async function handleCreateAccount(e) {
     alert("Server error while creating account.");
   }
 }
+
+let accountToDelete = null;
+function setupDeleteModalHandlers() {
+  const deleteModalCloseBtn = document.getElementById('deleteModalCloseBtn');
+  const deleteModalBackdrop = document.getElementById('deleteModalBackdrop');
+  const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+  const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+  if (deleteModalCloseBtn) {
+    deleteModalCloseBtn.addEventListener('click', () => toggleDeleteModal(false));
+  }
+  if (deleteModalBackdrop) {
+    deleteModalBackdrop.addEventListener('click', () => toggleDeleteModal(false));
+  }
+  if (cancelDeleteBtn) {
+    cancelDeleteBtn.addEventListener('click', () => toggleDeleteModal(false));
+  }
+  if (confirmDeleteBtn) {
+    confirmDeleteBtn.addEventListener('click', handleConfirmDelete);
+  }
+}
+
+function toggleDeleteModal(show, account = null) {
+  const modal = document.getElementById('deleteAccountModal');
+  const backdrop = document.getElementById('deleteModalBackdrop');
+  
+  if (!modal || !backdrop) return;
+
+  if (show) {
+    accountToDelete = account;
+    modal.classList.remove('hidden');
+    backdrop.classList.remove('hidden');
+  } else {
+    accountToDelete = null;
+    modal.classList.add('hidden');
+    backdrop.classList.add('hidden');
+  }
+}
+
+async function handleConfirmDelete() {
+  if (!accountToDelete) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/accounts/${accountToDelete.id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+
+    const data = await res.json();
+    
+    if (!data.success) {
+      alert(data.message || 'Failed to delete account.');
+      return;
+    }
+
+    accounts = accounts.filter(acc => acc.id !== accountToDelete.id);
+    if (selectedAccountId === accountToDelete.id) {
+      selectedAccountId = accounts.length > 0 ? accounts[0].id : null;
+      saveSelectedAccountId(selectedAccountId);
+    }
+    renderAccounts();
+    renderSelectedAccount();
+    toggleDeleteModal(false);
+  } catch (err) {
+    console.error('Error deleting account:', err);
+    alert('Server error while deleting account.');
+  }
+}
+
+function renderAccounts() {
+  const container = document.getElementById('accountsList');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  accounts.forEach((account) => {
+    const card = document.createElement('div');
+    card.className = 'account-card';
+    if (account.id === selectedAccountId) {
+      card.classList.add('active');
+    }
+
+    const balance = Number(account.balance || 0);
+
+    card.innerHTML = `
+      <button class="delete-btn" title="Delete account">×</button>
+      <div class="account-name">${account.account_name}</div>
+      <div class="account-meta">${account.account_type.toUpperCase()} • ${account.currency}</div>
+      <div class="account-balance">${balance.toFixed(2)} ${account.currency}</div>
+    `;
+
+    card.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('delete-btn')) return;
+      
+      if (selectedAccountId === account.id) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/accounts/${account.id}/default`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const data = await res.json();
+        if (!data.success) {
+          console.error('Could not set default account:', data.message);
+          return;
+        }
+
+        if (Array.isArray(data.accounts)) {
+          accounts = data.accounts;
+        } else {
+          accounts = accounts.map((a) => ({
+            ...a,
+            is_default: a.id === account.id ? 1 : 0,
+          }));
+        }
+
+        selectedAccountId = account.id;
+        saveSelectedAccountId(selectedAccountId);
+
+        renderAccounts();
+        renderSelectedAccount();
+      } catch (err) {
+        console.error('Error while setting default account:', err);
+      }
+    });
+
+    const deleteBtn = card.querySelector('.delete-btn');
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); 
+      toggleDeleteModal(true, account);
+    });
+
+    container.appendChild(card);
+  });
+
+  const addCard = document.createElement('div');
+  addCard.className = 'account-card add-card';
+  addCard.innerHTML = `
+    <div class="plus">+</div>
+    <div>Create new account</div>
+  `;
+  addCard.addEventListener('click', () => toggleModal(true));
+  container.appendChild(addCard);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initHeaderDate();
+  setupModalHandlers();
+  setupDeleteModalHandlers(); 
+  loadProfile();
+  loadAccounts();
+});

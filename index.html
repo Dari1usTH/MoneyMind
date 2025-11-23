@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script src="../captcha/captcha.js"></script>
+  <script src="admin/check_admin.js"></script>
 </head>
 <body onload="ensureCaptcha()">
   <nav class="navbar">
@@ -21,6 +22,7 @@
       <li><a href="../profile/profile.html">Profile</a></li>
       <li><a href="../support/support.html">Support</a></li>
       <li><a href="../admin/admin.html">Admin</a></li>
+      <li id="ticketsNavItem" style="display: none;"><a href="../tickets/tickets.html">Tickets</a>
     </ul>
     <button id="logoutBtn" class="logout-btn"></button>
   </nav>

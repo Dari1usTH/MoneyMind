@@ -2607,5 +2607,52 @@ app.post('/api/admin/tickets/:id/messages', authMiddleware, adminMiddleware, asy
   }
 });
 
+app.delete('/api/accounts/:id', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const accountId = Number(req.params.id);
+
+    if (!Number.isInteger(accountId) || accountId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid account id.',
+      });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      const [rows] = await conn.execute(
+        'SELECT id FROM accounts WHERE id = ? AND user_id = ? LIMIT 1',
+        [accountId, userId]
+      );
+
+      if (!rows.length) {
+        return res.status(404).json({
+          success: false,
+          message: 'Account not found.',
+        });
+      }
+
+      await conn.execute(
+        'DELETE FROM accounts WHERE id = ? AND user_id = ?',
+        [accountId, userId]
+      );
+
+      return res.json({
+        success: true,
+        message: 'Account deleted successfully.',
+      });
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('DELETE /api/accounts/:id error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not delete account.',
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
