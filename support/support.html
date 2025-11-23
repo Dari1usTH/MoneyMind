@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoneyMind - Support</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="./support.css" />
+  <script src="../captcha/captcha.js"></script>
+  <script src="../userbutton/script.js"></script>
+</head>
+<body onload="ensureCaptcha()">
+  <nav class="navbar">
+    <div class="nav-logo">
+      <h2>Money<span>Mind</span></h2>
+    </div>
+    <ul class="nav-links">
+      <li><a href="../index.html">Dashboard</a></li>
+      <li><a href="../invest/invest.html">Invest</a></li>
+      <li><a href="../news/news.html">News</a></li>
+      <li><a href="../profile/profile.html">Profile</a></li>
+      <li><a href="./support.html" class="active">Support</a></li>
+      <li><a href="../admin/admin.html">Admin</a></li>
+    </ul>
+    <button id="logoutBtn" class="logout-btn"></button>
+    <span id="userName" class="user-pill"></span>
+  </nav>
+    <div class="dashboard">
+        <div class="dashboard-header">
+            <div>
+                <div class="subtitle">Help & Support</div>
+                <h2>Support Center</h2>
+                <p class="muted">Get help with your account, report issues, or request new features.</p>
+            </div>
+            <div class="header-actions">
+                <div class="header-pill">Need immediate help? Contact us</div>
+                <button class="primary-ghost" onclick="showCreateTicket()">Create New Ticket</button>
+            </div>
+        </div>
+
+        <div id="createTicketSection" class="card create-ticket-section" style="display: none;">
+            <h3>Create Support Ticket</h3>
+            <form id="createTicketForm" class="ticket-form">
+                <div class="form-group">
+                    <label for="ticketTitle">Title</label>
+                    <input type="text" id="ticketTitle" name="title" placeholder="Brief description of your issue" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="ticketType">Issue Type</label>
+                    <select id="ticketType" name="type" required>
+                        <option value="">Select issue type</option>
+                        <option value="technical">Technical Issue</option>
+                        <option value="platform_bug">Platform Bug</option>
+                        <option value="account_issue">Account Issue</option>
+                        <option value="feature_request">Feature Request</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="ticketDescription">Description</label>
+                    <textarea id="ticketDescription" name="description" placeholder="Please provide detailed information about your issue..." rows="6" required></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="secondary-btn" onclick="hideCreateTicket()">Cancel</button>
+                    <button type="submit" class="primary-btn">Create Ticket</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="tickets-header">
+                <h3>My Support Tickets</h3>
+                <div class="ticket-filters">
+                    <select id="statusFilter" onchange="filterTickets()">
+                        <option value="all">All Status</option>
+                        <option value="open">Open</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                    <select id="typeFilter" onchange="filterTickets()">
+                        <option value="all">All Types</option>
+                        <option value="technical">Technical</option>
+                        <option value="platform_bug">Platform Bug</option>
+                        <option value="account_issue">Account Issue</option>
+                        <option value="feature_request">Feature Request</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="ticketsList" class="tickets-list">
+                <div class="loading-state">Loading your tickets...</div>
+            </div>
+        </div>
+
+        <div class="card closed-tickets-section">
+            <h3>Closed Tickets</h3>
+            <div id="closedTicketsList" class="tickets-list closed">
+            </div>
+        </div>
+    </div>
+
+    <div id="ticketModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTicketTitle">Ticket Details</h3>
+                <span class="close-modal" onclick="closeTicketModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="ticketChat" class="ticket-chat">
+                </div>
+                <div id="replySection" class="reply-section" style="display: none;">
+                    <textarea id="replyMessage" placeholder="Type your reply here..."></textarea>
+                    <button onclick="sendReply()" class="primary-btn">Send Reply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="support.js"></script>
+</body>
+</html>
