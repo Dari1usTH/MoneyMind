@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Management - TradeHub Admin</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="tickets.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-logo">
+            <h2>Trade<span>Hub</span> Admin</h2>
+        </div>
+        <ul class="nav-links">
+            <li><a href="admin-dashboard.html">Dashboard</a></li>
+            <li><a href="users.html">Users</a></li>
+            <li><a href="tickets.html" class="active">Tickets</a></li>
+            <li><a href="reports.html">Reports</a></li>
+        </ul>
+        <button class="logout-btn">Logout</button>
+    </nav>
+
+    <div class="dashboard">
+        <div class="dashboard-header">
+            <div>
+                <div class="subtitle">Admin Panel</div>
+                <h2>Support Ticket Management</h2>
+                <p class="muted">Manage and respond to user support tickets.</p>
+            </div>
+            <div class="header-actions">
+                <div class="header-pill" id="ticketStats">Loading stats...</div>
+                <button class="primary-ghost" onclick="refreshTickets()">Refresh</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Status:</label>
+                    <select id="adminStatusFilter" onchange="filterAdminTickets()">
+                        <option value="all">All Tickets</option>
+                        <option value="open">Open</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Type:</label>
+                    <select id="adminTypeFilter" onchange="filterAdminTickets()">
+                        <option value="all">All Types</option>
+                        <option value="technical">Technical</option>
+                        <option value="platform_bug">Platform Bug</option>
+                        <option value="account_issue">Account Issue</option>
+                        <option value="feature_request">Feature Request</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Priority:</label>
+                    <select id="adminPriorityFilter" onchange="filterAdminTickets()">
+                        <option value="all">All Priorities</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Sort by:</label>
+                    <select id="adminSortFilter" onchange="filterAdminTickets()">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="priority">Priority</option>
+                        <option value="updated">Recently Updated</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="tickets-header">
+                <h3>Support Tickets</h3>
+                <div class="ticket-actions">
+                    <button class="secondary-btn" onclick="exportTickets()">Export</button>
+                </div>
+            </div>
+            
+            <div id="adminTicketsList" class="admin-tickets-list">
+                <div class="loading-state">Loading tickets...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminTicketModal" class="modal">
+        <div class="modal-content admin-modal">
+            <div class="modal-header">
+                <div>
+                    <h3 id="adminModalTitle">Ticket Details</h3>
+                    <div class="ticket-info-bar" id="ticketInfoBar"></div>
+                </div>
+                <span class="close-modal" onclick="closeAdminTicketModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="admin-chat-container">
+                    <div id="adminTicketChat" class="ticket-chat">
+                    </div>
+                    <div class="admin-reply-section">
+                        <div class="admin-actions">
+                            <select id="ticketStatus" onchange="updateTicketStatus()">
+                                <option value="open">Open</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                            <select id="ticketPriority" onchange="updateTicketPriority()">
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                        <textarea id="adminReplyMessage" placeholder="Type your response here..."></textarea>
+                        <button onclick="sendAdminReply()" class="primary-btn">Send Response</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="tickets.js"></script>
+</body>
+</html>
+
