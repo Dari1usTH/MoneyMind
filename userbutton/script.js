@@ -2,9 +2,13 @@ const logoutBtn = document.getElementById("logoutBtn");
 const userNameDisplay = document.getElementById("userName");
 const username = localStorage.getItem("user");
 const isSupportPage = window.location.pathname.includes("/support/");
+const isTicketsPage = window.location.pathname.includes("/tickets/");
 
 if (!username) {
   if (!isSupportPage) {
+    userNameDisplay.textContent = "Guest";
+  }
+  if (!isTicketsPage) {
     userNameDisplay.textContent = "Guest";
   }
   logoutBtn.textContent = "Login";
@@ -13,6 +17,9 @@ if (!username) {
   });
 } else {
   if (!isSupportPage) {
+    userNameDisplay.textContent = username;
+  }
+  if (!isTicketsPage) {
     userNameDisplay.textContent = username;
   }
   logoutBtn.textContent = "Logout";

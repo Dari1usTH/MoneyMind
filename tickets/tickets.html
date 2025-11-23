@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ticket Management - MoneyMind Admin</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="tickets.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script defer src="../userbutton/script.js"></script>
 </head>
 <body onload="ensureCaptcha()">
     <nav class="navbar">
@@ -20,10 +21,11 @@
             <li><a href="../profile/profile.html">Profile</a></li>
             <li><a href="../support/support.html">Support</a></li>
             <li><a href="../admin/admin.html">Admin</a></li>
+            <li><a href="#" class="active">Tickets</a></li>
         </ul>
         <button id="logoutBtn" class="logout-btn"></button>
     </nav>
-
+    <span id="userName" class="user-pill"></span>
     <div class="dashboard">
         <div id="accessDenied" class="access-denied hidden">
             <div class="access-denied-content">
@@ -46,7 +48,28 @@
                 </div>
                 <div class="header-actions">
                     <div class="header-pill" id="ticketStats">Loading stats...</div>
-                    <button class="primary-ghost" onclick="refreshTickets()">Refresh</button>
+                    <button class="primary-ghost" onclick="refreshTickets()">
+                        <span class="refresh-icon">↻</span> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card admin">
+                    <div class="card-value" id="openTicketsCount">0</div>
+                    <div class="card-label">Open Tickets</div>
+                </div>
+                <div class="stat-card admin">
+                    <div class="card-value" id="urgentTicketsCount">0</div>
+                    <div class="card-label">Urgent</div>
+                </div>
+                <div class="stat-card admin">
+                    <div class="card-value" id="inProgressCount">0</div>
+                    <div class="card-label">In Progress</div>
+                </div>
+                <div class="stat-card admin">
+                    <div class="card-value" id="responseRate">0%</div>
+                    <div class="card-label">Response Rate</div>
                 </div>
             </div>
 
@@ -98,7 +121,8 @@
                 <div class="tickets-header">
                     <h3>Support Tickets</h3>
                     <div class="ticket-actions">
-                        <button class="secondary-btn" onclick="exportTickets()">Export</button>
+                        <button class="secondary-btn" onclick="exportTickets()">Export CSV</button>
+                        <button class="primary-btn" onclick="showCreateTicketModal()">+ New Ticket</button>
                     </div>
                 </div>
                 
@@ -121,6 +145,7 @@
             <div class="modal-body">
                 <div class="admin-chat-container">
                     <div id="adminTicketChat" class="ticket-chat">
+                        <div class="loading-state">Loading messages...</div>
                     </div>
                     <div class="admin-reply-section">
                         <div class="admin-actions">
@@ -135,6 +160,7 @@
                                 <option value="high">High</option>
                                 <option value="urgent">Urgent</option>
                             </select>
+                            <button class="secondary-btn" onclick="closeTicket()" id="closeTicketBtn">Close Ticket</button>
                         </div>
                         <textarea id="adminReplyMessage" placeholder="Type your response here..."></textarea>
                         <button onclick="sendAdminReply()" class="primary-btn">Send Response</button>
@@ -144,8 +170,52 @@
         </div>
     </div>
 
+    <div id="createTicketModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Ticket</h3>
+                <span class="close-modal" onclick="closeCreateTicketModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="createTicketForm" class="ticket-form">
+                    <div class="form-group">
+                        <label for="newTicketTitle">Title</label>
+                        <input type="text" id="newTicketTitle" name="title" placeholder="Enter ticket title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newTicketType">Type</label>
+                        <select id="newTicketType" name="type" required>
+                            <option value="technical">Technical Issue</option>
+                            <option value="platform_bug">Platform Bug</option>
+                            <option value="account_issue">Account Issue</option>
+                            <option value="feature_request">Feature Request</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="newTicketPriority">Priority</label>
+                        <select id="newTicketPriority" name="priority" required>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="newTicketDescription">Description</label>
+                        <textarea id="newTicketDescription" name="description" placeholder="Enter ticket description..." rows="5" required></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="secondary-btn" onclick="closeCreateTicketModal()">Cancel</button>
+                        <button type="submit" class="primary-btn">Create Ticket</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="../userbutton/script.js"></script>
     <script src="tickets.js"></script>
-    <scrip src="is_admin.js"></scrip>
+    <script src="is_admin.js"></script>
 </body>
 </html>

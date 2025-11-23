@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="./support.css" />
   <script src="../captcha/captcha.js"></script>
+  <script src="admin/check_admin.js"></script>
 </head>
 <body onload="ensureCaptcha()">
   <nav class="navbar">
@@ -22,6 +23,7 @@
       <li><a href="../profile/profile.html">Profile</a></li>
       <li><a href="./support.html" class="active">Support</a></li>
       <li><a href="../admin/admin.html">Admin</a></li>
+      <li id="ticketsNavItem" style="display: none;"><a href="../tickets/tickets.html">Tickets</a>
     </ul>
     <button id="logoutBtn" class="logout-btn"></button>
     <span id="userName" class="user-pill"></span>

@@ -4,11 +4,13 @@
 
 cand face conversatie sa fie style la acel bar
 style la meniu de ales
-
+support mesage team not box
 ---------------- bug ---------------------
 
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-added delete account button in profile 
-now tickets page is available only if you are logged in as an admin
+login/logout vizibil in tickets
+modifie tickets ( developing ) 
+created new api in backend for  tickets page 
+added tickets page in navbar for all pages
