@@ -11,3 +11,5 @@ support mesage team not box
 
 ------------------- what done ----------------
 logout button ticket
+removed user text from suport & tickets page
+fix tickets show in navbar
