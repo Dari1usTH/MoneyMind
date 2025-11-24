@@ -20,7 +20,6 @@ function isVerified() {
     const last = Number(localStorage.getItem(MM_CAPTCHA_TIME) || 0);
     const now = Date.now();
 
-    // 1 hour = 3600000ms
     if (!ok) return false;
     if (now - last > 3600000) return false;
 

@@ -225,7 +225,6 @@
     opacity: 0.5;
 }
 
-/* Stiluri pentru notificări */
 .notification {
     position: fixed;
     top: 20px;
@@ -375,3 +374,4 @@
     font-size: 14px;
     color: #00ffc6;
 }
+

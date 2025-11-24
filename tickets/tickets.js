@@ -534,3 +534,31 @@ document.addEventListener('DOMContentLoaded', function() {
         createTicketForm.addEventListener('submit', handleCreateTicket);
     }
 });
+
+function setupAdminEventListeners() {
+    const refreshBtn = document.querySelector('.primary-ghost');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshTickets);
+    }
+    
+    const replyTextarea = document.getElementById('adminReplyMessage');
+    if (replyTextarea) {
+        replyTextarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                sendAdminReply();
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('adminContent')) {
+        setupOnlineHandlers();
+        
+        const createTicketForm = document.getElementById('createTicketForm');
+        if (createTicketForm) {
+            createTicketForm.addEventListener('submit', handleCreateTicket);
+        }
+    }
+});

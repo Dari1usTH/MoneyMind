@@ -1,15 +1,16 @@
 
 
 -------------------to do --------------
-
+RESTYLE
 cand face conversatie sa fie style la acel bar
 style la meniu de ales
 support mesage team not box
+notificari
 ---------------- bug ---------------------
 
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-logout button ticket
-removed user text from suport & tickets page
-fix tickets show in navbar
+acces denield
+fix admin load tickets
+restyle a litte bit and added new styles for ticktes page

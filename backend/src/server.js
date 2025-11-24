@@ -1682,7 +1682,6 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
     try {
       await conn.beginTransaction();
 
-      // verificăm că account-ul aparține user-ului
       const [accRows] = await conn.execute(
         `SELECT id, balance, currency
          FROM accounts
