@@ -338,36 +338,45 @@ function escapeHtml(unsafe) {
 
 function showNotification(message, type) {
     const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
+    notification.className = `message ${type}`;
     notification.innerHTML = `
         <div class="notification-content">
             <span>${message}</span>
-            <button onclick="this.parentElement.parentElement.remove()">&times;</button>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
         </div>
     `;
     
     notification.style.cssText = `
         position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? 'rgba(0, 255, 198, 0.9)' : 'rgba(255, 87, 87, 0.9)'};
-        color: #000;
-        padding: 12px 20px;
-        border-radius: 10px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        bottom: 30px;
+        right: 30px;
+        padding: 18px 24px;
+        border-radius: 12px;
+        font-size: 14px;
+        text-align: left;
+        border: 1px solid transparent;
         z-index: 10000;
         animation: slideInRight 0.3s ease;
+        max-width: 350px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        ${type === 'success' ? 
+            'background: rgba(0, 255, 198, 0.15); border-color: #00ffc6; color: #b8fff0;' : 
+            'background: rgba(255, 75, 75, 0.15); border: 1px solid rgba(255, 75, 75, 1); color: #ff6b6b;'
+        }
     `;
     
     document.body.appendChild(notification);
     
     setTimeout(() => {
         if (notification.parentElement) {
-            notification.remove();
+            notification.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => {
+                if (notification.parentElement) notification.remove();
+            }, 300);
         }
     }, 5000);
 }
-
 window.onclick = function(event) {
     const modal = document.getElementById('ticketModal');
     if (event.target === modal) {

@@ -11,6 +11,4 @@ notificari
 ------------------ plan ---------------------
 
 ------------------- what done ----------------
-acces denield
-fix admin load tickets
-restyle a litte bit and added new styles for ticktes page
+tickets refresh nu se mai afiseaza de 2 ori 
