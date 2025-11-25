@@ -152,7 +152,7 @@ function showErrorState(message) {
     
     const errorHTML = `
         <div class="empty-state">
-            <div class="icon">⚠️</div>
+            <div class="icon"></div>
             <div>${message}</div>
             <button class="primary-btn" onclick="loadAdminTickets()" style="margin-top: 16px;">Try Again</button>
         </div>
@@ -591,12 +591,12 @@ function displayTicketsSection(containerId, tickets, type) {
     if (tickets.length === 0) {
         const emptyMessages = {
             active: {
-                icon: '📭',
+                icon: '',
                 title: 'No Active Tickets',
                 message: 'All caught up! No active tickets at the moment.'
             },
             closed: {
-                icon: '✅',
+                icon: '',
                 title: 'No Closed Tickets',
                 message: 'No tickets have been closed yet.'
             }

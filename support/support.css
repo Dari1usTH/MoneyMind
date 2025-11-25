@@ -620,3 +620,21 @@
     align-items: center;
     justify-content: space-between;
 }
+
+.ticket-chat::-webkit-scrollbar {
+    width: 8px;
+}
+
+.ticket-chat::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+}
+
+.ticket-chat::-webkit-scrollbar-thumb {
+    background: linear-gradient(#00ffc6, #00b3ff);
+    border-radius: 10px;
+}
+
+.ticket-chat::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(#00fff0, #1ec5ff);
+}

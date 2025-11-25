@@ -31,7 +31,6 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // accept all port
     const isLocalhost =
       /^https?:\/\/localhost(?::\d+)?$/.test(origin) ||
       /^https?:\/\/127\.0\.0\.1(?::\d+)?$/.test(origin);
