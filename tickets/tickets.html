@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="tickets.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="../userbutton/script_nouser.js"></script>
-    <script src="is_admin.js"></script>
+    <!--<script src="is_admin.js"></script>-->
 </head>
 <body onload="ensureCaptcha()">
     <nav class="navbar">
@@ -118,17 +118,30 @@
                 </div>
             </div>
 
-            <div class="card">
-                <div class="tickets-header">
-                    <h3>Support Tickets</h3>
-                    <div class="ticket-actions">
-                        <button class="secondary-btn" onclick="exportTickets()">Export CSV</button>
-                        <button class="primary-btn" onclick="showCreateTicketModal()">+ New Ticket</button>
+            <!-- Tickets Container cu două box-uri separate -->
+            <div class="tickets-container-vertical">
+                <!-- Active Tickets Section -->
+                <div class="card">
+                    <div class="tickets-header">
+                        <h3>🎯 Active Tickets</h3>
+                        <div class="header-badge" id="activeTicketsCount">0</div>
+                    </div>
+                    
+                    <div id="activeTicketsList" class="admin-tickets-list">
+                        <div class="loading-state">Loading active tickets...</div>
                     </div>
                 </div>
-                
-                <div id="adminTicketsList" class="admin-tickets-list">
-                    <div class="loading-state">Loading tickets...</div>
+
+                <!-- Closed Tickets Section -->
+                <div class="card">
+                    <div class="tickets-header">
+                        <h3>📁 Closed Tickets</h3>
+                        <div class="header-badge" id="closedTicketsCount">0</div>
+                    </div>
+                    
+                    <div id="closedTicketsList" class="admin-tickets-list">
+                        <div class="loading-state">Loading closed tickets...</div>
+                    </div>
                 </div>
             </div>
         </div>

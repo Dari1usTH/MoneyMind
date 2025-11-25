@@ -2,15 +2,103 @@ const API_BASE = "http://localhost:3001";
 
 let adminTickets = [];
 let currentAdminTicketId = null;
+let isInitialized = false;
+let isRefreshing = false;
 
-function setupAdminEventListeners() {
-    const refreshBtn = document.querySelector('.primary-ghost');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', refreshTickets);
+document.addEventListener('DOMContentLoaded', function() {
+    checkAdminAccess();
+});
+
+async function checkAdminAccess() {
+    if (isInitialized) return;
+    
+    try {
+        const isAdminInLocalStorage = localStorage.getItem('adminLoggedIn') === 'true';
+        const userRole = localStorage.getItem('userRole');
+        
+        if (isAdminInLocalStorage && userRole === 'admin') {
+            showAdminContent();
+            return;
+        }
+
+        const response = await fetch('http://localhost:3001/api/me', {
+            credentials: 'include'
+        });
+        
+        if (response.status === 401) {
+            showAccessDenied();
+            return;
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.user && data.user.role === 'admin') {
+            showAdminContent();
+        } else {
+            showAccessDenied();
+        }
+    } catch (error) {
+        showAccessDenied();
     }
 }
 
+function showAdminContent() {
+    document.getElementById('adminContent').classList.remove('hidden');
+    document.getElementById('accessDenied').classList.add('hidden');
+    isInitialized = true;
+    initializeAdminPanel();
+}
+
+function showAccessDenied() {
+    document.getElementById('accessDenied').classList.remove('hidden');
+    document.getElementById('adminContent').classList.add('hidden');
+}
+
+function initializeAdminPanel() {
+    setupAdminEventListeners();
+    setupOnlineHandlers();
+    loadAdminTickets();
+}
+
+function setupAdminEventListeners() {
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.primary-ghost')) {
+            e.preventDefault();
+            refreshTickets();
+        }
+    });
+    
+    const replyTextarea = document.getElementById('adminReplyMessage');
+    if (replyTextarea) {
+        replyTextarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                sendAdminReply();
+            }
+        });
+    }
+}
+
+function setupOnlineHandlers() {
+    let onlineTimeout;
+    
+    window.addEventListener('online', function() {
+        clearTimeout(onlineTimeout);
+        onlineTimeout = setTimeout(() => {
+            showNotification('Connection restored', 'success');
+            loadAdminTickets();
+        }, 1000);
+    });
+    
+    window.addEventListener('offline', function() {
+        clearTimeout(onlineTimeout);
+        showNotification('You are offline', 'error');
+    });
+}
+
 async function loadAdminTickets() {
+    if (isRefreshing) return;
+    
     try {
         showLoadingState();
         
@@ -42,29 +130,36 @@ async function loadAdminTickets() {
             throw new Error(result.message || 'Failed to load tickets');
         }
     } catch (error) {
-        console.error('Error loading tickets:', error);
         showErrorState('Error loading tickets. Please refresh the page.');
     }
 }
 
 function showLoadingState() {
-    const container = document.getElementById('adminTicketsList');
-    if (container) {
-        container.innerHTML = '<div class="loading-state">Loading tickets...</div>';
+    const activeContainer = document.getElementById('activeTicketsList');
+    const closedContainer = document.getElementById('closedTicketsList');
+    
+    if (activeContainer) {
+        activeContainer.innerHTML = '<div class="loading-state">Loading active tickets...</div>';
+    }
+    if (closedContainer) {
+        closedContainer.innerHTML = '<div class="loading-state">Loading closed tickets...</div>';
     }
 }
 
 function showErrorState(message) {
-    const container = document.getElementById('adminTicketsList');
-    if (container) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="icon">⚠️</div>
-                <div>${message}</div>
-                <button class="primary-btn" onclick="loadAdminTickets()" style="margin-top: 16px;">Try Again</button>
-            </div>
-        `;
-    }
+    const activeContainer = document.getElementById('activeTicketsList');
+    const closedContainer = document.getElementById('closedTicketsList');
+    
+    const errorHTML = `
+        <div class="empty-state">
+            <div class="icon">⚠️</div>
+            <div>${message}</div>
+            <button class="primary-btn" onclick="loadAdminTickets()" style="margin-top: 16px;">Try Again</button>
+        </div>
+    `;
+    
+    if (activeContainer) activeContainer.innerHTML = errorHTML;
+    if (closedContainer) closedContainer.innerHTML = errorHTML;
 }
 
 function displayAdminTickets() {
@@ -79,58 +174,28 @@ function displayAdminTickets() {
         (priorityFilter === 'all' || ticket.priority === priorityFilter)
     );
 
-    filteredTickets.sort((a, b) => {
-        switch (sortFilter) {
-            case 'oldest':
-                return new Date(a.created_at) - new Date(b.created_at);
-            case 'priority':
-                const priorityOrder = { 'urgent': 0, 'high': 1, 'medium': 2, 'low': 3 };
-                return priorityOrder[a.priority] - priorityOrder[b.priority];
-            case 'updated':
-                return new Date(b.updated_at) - new Date(a.updated_at);
-            default: 
-                return new Date(b.created_at) - new Date(a.created_at);
-        }
-    });
+    const activeTickets = filteredTickets.filter(ticket => ticket.status !== 'closed');
+    const closedTickets = filteredTickets.filter(ticket => ticket.status === 'closed');
 
-    const container = document.getElementById('adminTicketsList');
-    if (!container) return;
-    
-    if (filteredTickets.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="icon">📭</div>
-                <div>No tickets match your filters</div>
-            </div>
-        `;
-        return;
-    }
+    const sortTickets = (tickets) => {
+        return tickets.sort((a, b) => {
+            switch (sortFilter) {
+                case 'oldest':
+                    return new Date(a.created_at) - new Date(b.created_at);
+                case 'priority':
+                    const priorityOrder = { 'urgent': 0, 'high': 1, 'medium': 2, 'low': 3 };
+                    return priorityOrder[a.priority] - priorityOrder[b.priority];
+                case 'updated':
+                    return new Date(b.updated_at) - new Date(a.updated_at);
+                default: 
+                    return new Date(b.created_at) - new Date(a.created_at);
+            }
+        });
+    };
 
-    container.innerHTML = filteredTickets.map(ticket => `
-        <div class="admin-ticket-item ${getTicketRowClass(ticket)}" onclick="openAdminTicketModal(${ticket.id})">
-            <div class="admin-ticket-info">
-                <div class="admin-ticket-header">
-                    <div class="admin-ticket-title">
-                        ${escapeHtml(ticket.title)}
-                        ${hasUnreadMessages(ticket) ? '<span class="unread-indicator"></span>' : ''}
-                    </div>
-                    <div class="admin-ticket-user">${escapeHtml(ticket.first_name ? `${ticket.first_name} ${ticket.last_name}` : `User #${ticket.user_id}`)}</div>
-                </div>
-                <div class="admin-ticket-meta">
-                    <span class="admin-ticket-type">${formatTicketType(ticket.type)}</span>
-                    <span class="admin-ticket-priority priority-${ticket.priority}">${formatPriority(ticket.priority)}</span>
-                    <span>Created: ${formatDate(ticket.created_at)}</span>
-                    <span>Updated: ${formatDate(ticket.updated_at)}</span>
-                    ${ticket.message_count > 0 ? `<span>${ticket.message_count} messages</span>` : ''}
-                </div>
-                <div class="admin-ticket-description">${escapeHtml(ticket.description)}</div>
-            </div>
-            <div class="admin-ticket-status">
-                <span class="admin-status-badge status-${ticket.status}">${formatStatus(ticket.status)}</span>
-                <span class="admin-ticket-date">#${ticket.id}</span>
-            </div>
-        </div>
-    `).join('');
+    displayTicketsSection('activeTicketsList', sortTickets(activeTickets), 'active');
+    displayTicketsSection('closedTicketsList', sortTickets(closedTickets), 'closed');
+    updateTicketsCounters(activeTickets.length, closedTickets.length);
 }
 
 function updateStatistics(tickets) {
@@ -194,7 +259,6 @@ async function openAdminTicketModal(ticketId) {
             throw new Error(result.message || 'Failed to load ticket details');
         }
     } catch (error) {
-        console.error('Error loading ticket:', error);
         showNotification(error.message || 'Error loading ticket details.', 'error');
     }
 }
@@ -255,7 +319,7 @@ function displayAdminTicketModal(ticketData) {
 function closeAdminTicketModal() {
     document.getElementById('adminTicketModal').style.display = 'none';
     currentAdminTicketId = null;
-    loadAdminTickets(); 
+    loadAdminTickets();
 }
 
 async function updateTicketStatus() {
@@ -280,7 +344,6 @@ async function updateTicketStatus() {
         showNotification('Ticket status updated successfully!', 'success');
         closeAdminTicketModal();
     } catch (error) {
-        console.error('Error updating status:', error);
         showNotification(error.message || 'Error updating ticket status.', 'error');
     }
 }
@@ -307,7 +370,6 @@ async function updateTicketPriority() {
         showNotification('Ticket priority updated successfully!', 'success');
         closeAdminTicketModal();
     } catch (error) {
-        console.error('Error updating priority:', error);
         showNotification(error.message || 'Error updating ticket priority.', 'error');
     }
 }
@@ -332,12 +394,11 @@ async function sendAdminReply() {
 
         if (response.ok && result.success) {
             document.getElementById('adminReplyMessage').value = '';
-            openAdminTicketModal(currentAdminTicketId); 
+            openAdminTicketModal(currentAdminTicketId);
         } else {
             throw new Error(result.message || 'Failed to send message');
         }
     } catch (error) {
-        console.error('Error sending message:', error);
         showNotification(error.message || 'Error sending message. Please try again.', 'error');
     }
 }
@@ -365,14 +426,20 @@ async function closeTicket() {
         closeAdminTicketModal();
         loadAdminTickets();
     } catch (error) {
-        console.error('Error closing ticket:', error);
         showNotification(error.message || 'Error closing ticket.', 'error');
     }
 }
 
-function refreshTickets() {
-    loadAdminTickets();
-    showNotification('Tickets refreshed', 'success');
+async function refreshTickets() {
+    if (isRefreshing) return;
+    
+    isRefreshing = true;
+    try {
+        await loadAdminTickets();
+        showNotification('Tickets refreshed', 'success');
+    } finally {
+        isRefreshing = false;
+    }
 }
 
 function exportTickets() {
@@ -387,13 +454,6 @@ function closeCreateTicketModal() {
     document.getElementById('createTicketModal').style.display = 'none';
     document.getElementById('createTicketForm').reset();
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    const createTicketForm = document.getElementById('createTicketForm');
-    if (createTicketForm) {
-        createTicketForm.addEventListener('submit', handleCreateTicket);
-    }
-});
 
 async function handleCreateTicket(event) {
     event.preventDefault();
@@ -426,7 +486,6 @@ async function handleCreateTicket(event) {
             throw new Error(result.message || 'Failed to create ticket');
         }
     } catch (error) {
-        console.error('Error creating ticket:', error);
         showNotification(error.message || 'Error creating ticket. Please try again.', 'error');
     }
 }
@@ -470,32 +529,42 @@ function escapeHtml(unsafe) {
 
 function showNotification(message, type) {
     const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
+    notification.className = `message ${type}`;
     notification.innerHTML = `
         <div class="notification-content">
             <span>${message}</span>
-            <button onclick="this.parentElement.parentElement.remove()">&times;</button>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
         </div>
     `;
     
     notification.style.cssText = `
         position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? 'rgba(0, 255, 198, 0.9)' : 'rgba(255, 87, 87, 0.9)'};
-        color: #000;
-        padding: 12px 20px;
-        border-radius: 10px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        bottom: 30px;
+        right: 30px;
+        padding: 18px 24px;
+        border-radius: 12px;
+        font-size: 14px;
+        text-align: left;
+        border: 1px solid transparent;
         z-index: 10000;
         animation: slideInRight 0.3s ease;
+        max-width: 350px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        ${type === 'success' ? 
+            'background: rgba(0, 255, 198, 0.15); border-color: #00ffc6; color: #b8fff0;' : 
+            'background: rgba(255, 75, 75, 0.15); border: 1px solid rgba(255, 75, 75, 1); color: #ff6b6b;'
+        }
     `;
     
     document.body.appendChild(notification);
     
     setTimeout(() => {
         if (notification.parentElement) {
-            notification.remove();
+            notification.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => {
+                if (notification.parentElement) notification.remove();
+            }, 300);
         }
     }, 5000);
 }
@@ -515,50 +584,66 @@ function isOnline() {
     return navigator.onLine;
 }
 
-function setupOnlineHandlers() {
-    window.addEventListener('online', function() {
-        showNotification('Connection restored', 'success');
-        loadAdminTickets();
-    });
+function displayTicketsSection(containerId, tickets, type) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
     
-    window.addEventListener('offline', function() {
-        showNotification('You are offline', 'error');
-    });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    setupOnlineHandlers();
-    
-    const createTicketForm = document.getElementById('createTicketForm');
-    if (createTicketForm) {
-        createTicketForm.addEventListener('submit', handleCreateTicket);
-    }
-});
-
-function setupAdminEventListeners() {
-    const refreshBtn = document.querySelector('.primary-ghost');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', refreshTickets);
-    }
-    
-    const replyTextarea = document.getElementById('adminReplyMessage');
-    if (replyTextarea) {
-        replyTextarea.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                sendAdminReply();
+    if (tickets.length === 0) {
+        const emptyMessages = {
+            active: {
+                icon: '📭',
+                title: 'No Active Tickets',
+                message: 'All caught up! No active tickets at the moment.'
+            },
+            closed: {
+                icon: '✅',
+                title: 'No Closed Tickets',
+                message: 'No tickets have been closed yet.'
             }
-        });
+        };
+        
+        const empty = emptyMessages[type];
+        container.innerHTML = `
+            <div class="tickets-section-empty">
+                <div class="icon">${empty.icon}</div>
+                <h4>${empty.title}</h4>
+                <p>${empty.message}</p>
+            </div>
+        `;
+        return;
     }
+
+    container.innerHTML = tickets.map(ticket => `
+        <div class="admin-ticket-item ${getTicketRowClass(ticket)}" onclick="openAdminTicketModal(${ticket.id})">
+            <div class="admin-ticket-info">
+                <div class="admin-ticket-header">
+                    <div class="admin-ticket-title">
+                        ${escapeHtml(ticket.title)}
+                        ${hasUnreadMessages(ticket) ? '<span class="unread-indicator"></span>' : ''}
+                    </div>
+                    <div class="admin-ticket-user">${escapeHtml(ticket.first_name ? `${ticket.first_name} ${ticket.last_name}` : `User #${ticket.user_id}`)}</div>
+                </div>
+                <div class="admin-ticket-meta">
+                    <span class="admin-ticket-type">${formatTicketType(ticket.type)}</span>
+                    <span class="admin-ticket-priority priority-${ticket.priority}">${formatPriority(ticket.priority)}</span>
+                    <span>Created: ${formatDate(ticket.created_at)}</span>
+                    <span>Updated: ${formatDate(ticket.updated_at)}</span>
+                    ${ticket.message_count > 0 ? `<span>${ticket.message_count} messages</span>` : ''}
+                </div>
+                <div class="admin-ticket-description">${escapeHtml(ticket.description)}</div>
+            </div>
+            <div class="admin-ticket-status">
+                <span class="admin-status-badge status-${ticket.status}">${formatStatus(ticket.status)}</span>
+                <span class="admin-ticket-date">#${ticket.id}</span>
+            </div>
+        </div>
+    `).join('');
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('adminContent')) {
-        setupOnlineHandlers();
-        
-        const createTicketForm = document.getElementById('createTicketForm');
-        if (createTicketForm) {
-            createTicketForm.addEventListener('submit', handleCreateTicket);
-        }
-    }
-});
+function updateTicketsCounters(activeCount, closedCount) {
+    const activeCounter = document.getElementById('activeTicketsCount');
+    const closedCounter = document.getElementById('closedTicketsCount');
+    
+    if (activeCounter) activeCounter.textContent = activeCount;
+    if (closedCounter) closedCounter.textContent = closedCount;
+}

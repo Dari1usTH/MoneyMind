@@ -44,4 +44,3 @@ function showAccessDenied() {
     document.getElementById('accessDenied').classList.remove('hidden');
     document.getElementById('adminContent').classList.add('hidden');
 }
-
